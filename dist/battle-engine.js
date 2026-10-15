@@ -90,7 +90,7 @@ export function createBattle(random=Math.random) {
     }else if(sat.phase==='charging'){
      const target=state.fighters[sat.target];if(target.hp<=0||pact(sat.owner,sat.target)){returnSatellite(sat,events);continue;}
      if(target.jamUntil>state.time||owner.energy<40)break;
-     owner.energy-=40;sat.decoy=target.decoyUntil>state.time;sat.elapsed=0;sat.phase='firing';owner.laserStrikes++;events.push({type:'laserStart',from:sat.owner,to:sat.target,decoy:sat.decoy});
+     owner.energy-=40;sat.decoy=target.decoyUntil>state.time;sat.elapsed=0;sat.phase='firing';owner.strategy='Laser orbital engagé (40 énergie)';owner.laserStrikes++;events.push({type:'laserStart',from:sat.owner,to:sat.target,decoy:sat.decoy});
     }else if(sat.phase==='firing'){
      if(state.fighters[sat.target].hp<=0||pact(sat.owner,sat.target)){returnSatellite(sat,events);continue;}
      const step=Math.min(remaining,ORBITAL.laserDuration-sat.elapsed);const hit=sat.decoy?{damage:0}:applyDamage(sat.owner,sat.target,ORBITAL.damagePerSecond*step,events,'laser',sat.zone);owner.laserDamage+=hit.damage;owner.laserSeconds+=step;sat.elapsed+=step;sat.damage+=hit.damage;remaining-=step;

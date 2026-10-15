@@ -90,3 +90,24 @@ test('country shield shell is raised, follows polygon holes and curves over larg
  for(const id of ['FRA','USA','RUS','JPN']){const mesh=territoryShell(world.features.find(f=>f.id===id));assert.ok(mesh.top.length>0&&mesh.border.length>0&&mesh.walls.length>0);for(let i=0;i<mesh.top.length;i+=3)assert.ok(Math.abs(Math.hypot(...mesh.top.slice(i,i+3))-SHIELD_RADIUS)<1e-6);assert.ok(SHIELD_RADIUS>2.15);}
  const donut={geometry:{type:'Polygon',coordinates:[[[0,0],[10,0],[10,10],[0,10],[0,0]],[[4,4],[6,4],[6,6],[4,6],[4,4]]]}};const mesh=territoryShell(donut);for(let i=0;i<mesh.top.length;i+=9){const p=[0,0,0];for(let j=0;j<3;j++)for(let k=0;k<3;k++)p[k]+=mesh.top[i+j*3+k]/3;const lon=Math.atan2(p[0],p[2])*180/Math.PI,lat=Math.asin(p[1]/Math.hypot(...p))*180/Math.PI;assert.ok(!(lon>4&&lon<6&&lat>4&&lat<6),'Shield must leave the hole open');}
 });
+
+test('strategic zones disable energy production, interception radar and heavy missiles',()=>{
+ const g=createBattle(()=>.99);g.start({mode:'duel',satellites:false,players:players(2)});g.state.fighters.forEach(f=>f.next=Infinity);const target=g.state.fighters[1];target.shield=0;target.shieldHitAt=0;
+ g.state.flights.push({id:1,from:0,to:1,kind:'heavy',targetZone:'radar',start:-10,duration:4,damage:30,launched:true,defenseAt:.72,defenseChecked:true});const events=g.step(.1);assert.equal(target.zones.find(z=>z.type==='radar').hp,0);assert.ok(events.some(e=>e.type==='zoneDestroyed'&&e.zone==='radar'));
+ target.energy=100;g.state.flights.push({id:2,from:0,to:1,kind:'light',start:g.state.time-3,duration:4,damage:1,launched:true,defenseAt:.72,defenseChecked:false});assert.equal(g.step(.1).filter(e=>e.type==='defend').length,0);
+ target.zones.find(z=>z.type==='reactor').hp=0;target.energy=10;g.step(1);assert.equal(target.energy,14);
+ const launcher=g.state.fighters[0];launcher.zones.find(z=>z.type==='silo').hp=0;launcher.energy=100;launcher.next=g.state.time;const shots=g.step(.1).filter(e=>e.type==='launch');assert.ok(shots.length);assert.ok(shots.every(e=>e.flight.kind!=='heavy'));assert.ok(launcher.next-g.state.time>=2.4*1.7);
+});
+test('laser waits for 40 shared energy; decoys waste the beam without damage',()=>{
+ const g=createBattle(()=>.99);g.start({mode:'duel',players:players(2)});g.state.fighters.forEach(f=>f.next=Infinity);g.state.satellites[1].phase='offline';const sat=g.state.satellites[0],f=g.state.fighters[0],target=g.state.fighters[1];sat.phase='charging';sat.target=1;sat.returnTime=10;f.energy=39;g.step(.01);assert.equal(sat.phase,'charging');const events=g.step(.2);assert.equal(sat.phase,'firing');assert.ok(events.some(e=>e.type==='laserStart'));assert.ok(f.energy<2);
+ g.reset();g.start();g.state.fighters.forEach(f=>f.next=Infinity);g.state.satellites[1].phase='offline';const decoySat=g.state.satellites[0],decoyTarget=g.state.fighters[1];decoySat.phase='charging';decoySat.target=1;decoySat.returnTime=10;g.state.fighters[0].energy=100;decoyTarget.decoyUntil=20;g.step(.1);assert.equal(decoySat.decoy,true);for(let i=0;i<50;i++)g.step(.1);assert.equal(decoyTarget.hp,100);assert.equal(decoyTarget.shield,40);assert.equal(g.state.fighters[0].laserDamage,0);
+});
+test('AI countermeasures cost energy, have cooldowns and block new laser locks',()=>{
+ for(const [profile,random,type,cost] of [['defensive',()=>0,'jam',22],['opportunist',()=>.5,'decoy',18]]){
+  const g=createBattle(random);g.start({mode:'duel',players:[{id:'A'},{id:'B',profile}]});g.state.fighters[0].next=Infinity;g.state.fighters[0].energy=0;g.state.fighters[1].next=1;g.state.fighters[1].energy=100;g.state.satellites[1].phase='offline';Object.assign(g.state.satellites[0],{phase:'charging',target:1,returnTime:10});const events=g.step(1);assert.ok(events.some(e=>e.type===type));assert.equal(g.state.fighters[1].energy,100-cost);assert.ok(g.state.fighters[1][type+'Ready']>g.state.time);if(type==='jam'){g.state.fighters.forEach(f=>f.next=Infinity);g.state.fighters[0].energy=100;g.step(.1);assert.equal(g.state.satellites[0].phase,'charging');}
+ }
+});
+test('shield recharge spends the shared energy pool and repairs restore a damaged zone',()=>{
+ const g=createBattle(()=>.5);g.start({mode:'duel',satellites:false,players:players(2)});g.state.fighters.forEach(f=>f.next=Infinity);const f=g.state.fighters[1];f.energy=10;f.shield=20;f.shieldHitAt=-10;g.step(1);assert.equal(f.shield,22.5);assert.equal(f.energy,15.5);
+ f.shield=40;f.energy=100;f.zones[0].hp=0;f.next=g.state.time;const events=g.step(.1);assert.ok(events.some(e=>e.type==='repair'));assert.equal(f.zones[0].hp,12);
+});
