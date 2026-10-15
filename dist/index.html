@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#080d12"><meta name="description" content="Choisissez deux nations et observez un duel fictif entre IA sur un globe 3D : missiles, interceptions et explosions.">
+  <title>Atlas Arena — Duel des nations</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23080d12' stroke='%2377ddd4' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="arena.css">
+  <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+</head>
+<body>
+<header><a class="brand" href="./" aria-label="Atlas Arena, accueil"><span class="brand-icon">◎</span> ATLAS<span class="brand-dot">.</span></a><span class="header-note">A R E N A / DUEL DES NATIONS</span><div class="live"><i></i> SIMULATION FICTIVE <span>IA × IA</span></div></header>
+<main>
+  <aside class="sidebar">
+    <div class="eyebrow">STRATÉGIES AUTONOMES · CONFLITS FICTIFS</div><h1>Le monde.<br><em>Votre arène.</em></h1><p class="intro">Composez les camps et leurs stratégies. <br>Les IA prennent les commandes.</p>
+    <div class="mode-controls"><label>MODE<select id="game-mode"><option value="duel">Duel</option><option value="ffa">Chacun pour soi</option><option value="teams">Équipes</option><option value="tournament">Tournoi · 4 nations</option></select></label><label>NATIONS<select id="nation-count"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></label></div>
+    <div id="nation-setup" class="nation-setup"></div><div id="bracket" class="bracket" hidden></div>
+    <label class="salvo-option"><input type="checkbox" id="salvo-priority" checked>Favoriser les salves de 20 <span>4 groupes de 5 · cibles réparties</span></label>
+    <label class="salvo-option"><input type="checkbox" id="orbital-enabled" checked>Satellites et lasers orbitaux <span>Un satellite par nation · laser rouge pendant 5 s</span></label>
+    <button id="start-battle" class="primary-action" disabled>Chargement de l’arène…</button>
+    <div class="setup-note">100 PV · énergie renouvelable · profils IA adaptatifs</div>
+    <details class="arsenal"><summary>Arsenal et règles du jeu</summary><p><b>Éclair</b> · 12 dégâts · 22 énergie · rapide<br><b>Essaim</b> · 20 × 2 dégâts · 55 énergie · 4 vagues de 5 espacées de 0,85 s<br><b>Titan</b> · 38 dégâts · 62 énergie · lent et puissant</p><p><b>Intercepteurs</b> : 6 en stock, une munition rechargée toutes les 8 s, délai de 0,45 s entre tirs, 8 énergie par tir. Une interception peut échouer. Le stock et le rechargement sont visibles sur les cartes.</p><p>Bouclier : 28 énergie, absorbe 32 dégâts.<br>Réparation : 35 énergie, restaure 14 PV.<br>Dernière offensive sous 30 PV : bonus d’énergie et de dégâts, mais Titan coûte aussi 5 PV.</p><p>Les IA adaptent leur arsenal aux interceptions et à l’énergie adverse. En chacun pour soi : trêves de 12 s, avec ruptures possibles. En équipes : A/C/E contre B/D/F. Après 75 s : mort subite pour éviter les parties sans fin.</p></details>
+    <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Rechercher un pays…" autocomplete="off" aria-label="Rechercher un pays"><kbd>/</kbd></label>
+    <div class="filters" aria-label="Filtrer par continent"><button class="active" data-filter="Tous" aria-pressed="true">Tous</button><button data-filter="Europe" aria-pressed="false">Europe</button><button data-filter="Afrique" aria-pressed="false">Afrique</button><button data-filter="Asie" aria-pressed="false">Asie</button><button data-filter="Amériques" aria-pressed="false">Amériques</button><button data-filter="Océanie" aria-pressed="false">Océanie</button></div>
+    <div class="list-heading"><span>CHOISIR DANS LA LISTE</span><span id="count">50</span></div>
+    <div id="country-list" class="country-list" aria-label="Liste des pays"></div>
+    <div class="sidebar-footer"><i></i> Sélectionnez une lettre, puis un pays.</div>
+  </aside>
+  <section class="world" aria-label="Globe terrestre interactif">
+    <div class="world-top"><span><i></i> <span id="battle-status">PRÉPARATION DE L’ARÈNE</span></span><b id="battle-time">00:00</b><span id="coordinates">48.86° N / 2.35° E</span></div>
+    <div class="scoreboard" aria-label="État des nations"></div>
+    <div id="cinematic-label" class="cinematic-label" role="status" hidden></div>
+    <div id="globe" tabindex="0" role="img" aria-label="Globe 3D. Glissez pour tourner, utilisez la molette pour zoomer. Sélectionnez les pays dans la liste."></div>
+    <div class="world-caption"><span class="small-orbit">◎</span><div>Observez. Les IA s’affrontent.<small>GLISSEZ POUR EXPLORER · DÉFILEZ POUR ZOOMER</small></div></div>
+    <div class="view-controls"><button id="rotate" title="Mettre en pause la rotation" aria-label="Mettre en pause la rotation" aria-pressed="true">Ⅱ</button><span></span><button id="zoom-in" title="Zoom avant" aria-label="Zoom avant">+</button><button id="zoom-out" title="Zoom arrière" aria-label="Zoom arrière">−</button><span></span><button id="reset" title="Recentrer le globe" aria-label="Recentrer le globe">⌖</button><button id="fullscreen" title="Plein écran" aria-label="Plein écran">⛶</button></div>
+    <div id="tooltip" role="tooltip"></div>
+    <div id="loading" role="status"><span class="loader"></span>Création de votre monde…</div>
+    <div class="battle-dock"><div id="diplomacy" class="diplomacy"></div><div class="simulation-controls"><button id="pause-battle" disabled>Pause</button><button id="reset-battle">Réinitialiser</button><label>Vitesse <select id="speed-battle" aria-label="Vitesse de simulation"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select></label><label class="follow"><input type="checkbox" id="follow-battle" checked>Cadrage auto</label><label><input type="checkbox" id="cinematic-battle" checked>Caméra Titan uniquement</label></div><div class="journal"><div class="list-heading"><span>JOURNAL DE L’AFFRONTEMENT</span><span>● IA</span></div><ol id="event-list" aria-label="Événements du duel"></ol></div></div>
+    <div id="result" class="result" role="status" hidden><span class="eyebrow">BILAN DE L’AFFRONTEMENT</span><h2 id="result-title"></h2><p id="result-detail"></p><div class="stats-scroll"><table id="result-stats"></table></div><p id="decisive"></p><p id="next-round"></p><button id="replay-battle" class="primary-action">Rejouer ↗</button></div>
+    <article class="country-card" id="country-card" aria-live="polite"><div class="card-top"><span class="eyebrow">ESCALE SÉLECTIONNÉE</span><span id="card-region">EUROPE</span></div><div class="country-title"><span id="card-flag">🇫🇷</span><div><h2 id="card-name">France</h2><span id="card-native">République française</span></div><span class="card-index" id="card-index">01</span></div><div class="country-facts"><div><small>CAPITALE</small><strong id="card-capital">Paris</strong></div><div><small>COORDONNÉES DE LA CAPITALE</small><strong id="card-coords">48.86° N · 2.35° E</strong></div></div><div class="card-bottom"><span><i></i> Sur le globe</span><button id="focus">Centrer sur ce pays ↗</button></div></article>
+    <div class="world-bottom"><span>ÉCLAIR · ESSAIM · TITAN / DÉFENSES ADAPTATIVES</span><span>SIMULATION FICTIVE <b>↗</b></span></div>
+  </section>
+</main>
+<script type="module" src="app.js"></script>
+</body></html>

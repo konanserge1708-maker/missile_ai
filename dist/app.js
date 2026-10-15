@@ -1,0 +1,82 @@
+import * as THREE from 'three';
+import { OrbitControls } from './vendor/OrbitControls.js';
+import { createArena } from './arena.js';
+
+// Capital coordinates locate the 50 featured stops; world boundaries come from Natural Earth.
+const rows = [
+['FRA','FR','France','Paris','Europe',48.8566,2.3522,'République française'],
+['DEU','DE','Allemagne','Berlin','Europe',52.52,13.405],['GBR','GB','Royaume-Uni','Londres','Europe',51.507,-.128],['ESP','ES','Espagne','Madrid','Europe',40.417,-3.704],['ITA','IT','Italie','Rome','Europe',41.903,12.496],['PRT','PT','Portugal','Lisbonne','Europe',38.722,-9.139],['NLD','NL','Pays-Bas','Amsterdam','Europe',52.367,4.904],['CHE','CH','Suisse','Berne','Europe',46.948,7.447],['NOR','NO','Norvège','Oslo','Europe',59.914,10.752],['SWE','SE','Suède','Stockholm','Europe',59.329,18.069],['POL','PL','Pologne','Varsovie','Europe',52.23,21.012],['UKR','UA','Ukraine','Kyiv','Europe',50.45,30.523],['GRC','GR','Grèce','Athènes','Europe',37.984,23.728],['RUS','RU','Russie','Moscou','Europe',55.756,37.617],
+['MAR','MA','Maroc','Rabat','Afrique',34.02,-6.842],['DZA','DZ','Algérie','Alger','Afrique',36.753,3.058],['EGY','EG','Égypte','Le Caire','Afrique',30.044,31.236],['SEN','SN','Sénégal','Dakar','Afrique',14.717,-17.468],['CIV','CI','Côte d’Ivoire','Yamoussoukro','Afrique',6.827,-5.289],['NGA','NG','Nigeria','Abuja','Afrique',9.076,7.399],['GHA','GH','Ghana','Accra','Afrique',5.604,-.187],['COD','CD','RD Congo','Kinshasa','Afrique',-4.442,15.266],['ETH','ET','Éthiopie','Addis-Abeba','Afrique',8.981,38.758],['KEN','KE','Kenya','Nairobi','Afrique',-1.292,36.822],['TZA','TZ','Tanzanie','Dodoma','Afrique',-6.163,35.751],['ZAF','ZA','Afrique du Sud','Pretoria','Afrique',-25.747,28.229],['MDG','MG','Madagascar','Antananarivo','Afrique',-18.879,47.508],
+['TUR','TR','Turquie','Ankara','Asie',39.933,32.86],['SAU','SA','Arabie saoudite','Riyad','Asie',24.714,46.675],['ARE','AE','Émirats arabes unis','Abou Dabi','Asie',24.454,54.377],['IRN','IR','Iran','Téhéran','Asie',35.689,51.389],['IND','IN','Inde','New Delhi','Asie',28.614,77.209],['PAK','PK','Pakistan','Islamabad','Asie',33.684,73.048],['CHN','CN','Chine','Pékin','Asie',39.904,116.407],['JPN','JP','Japon','Tokyo','Asie',35.676,139.65],['KOR','KR','Corée du Sud','Séoul','Asie',37.566,126.978],['THA','TH','Thaïlande','Bangkok','Asie',13.756,100.502],['VNM','VN','Vietnam','Hanoï','Asie',21.028,105.834],['IDN','ID','Indonésie','Jakarta','Asie',-6.208,106.846],['PHL','PH','Philippines','Manille','Asie',14.599,120.984],
+['CAN','CA','Canada','Ottawa','Amériques',45.421,-75.697],['USA','US','États-Unis','Washington','Amériques',38.907,-77.037],['MEX','MX','Mexique','Mexico','Amériques',19.433,-99.133],['COL','CO','Colombie','Bogotá','Amériques',4.711,-74.072],['BRA','BR','Brésil','Brasília','Amériques',-15.794,-47.883],['PER','PE','Pérou','Lima','Amériques',-12.046,-77.043],['ARG','AR','Argentine','Buenos Aires','Amériques',-34.604,-58.382],['CHL','CL','Chili','Santiago','Amériques',-33.449,-70.669],
+['AUS','AU','Australie','Canberra','Océanie',-35.28,149.13],['NZL','NZ','Nouvelle-Zélande','Wellington','Océanie',-41.287,174.776]
+];
+const countries = rows.map(([id,iso,name,capital,region,lat,lon,native],index)=>({id,iso,name,capital,region,lat,lon,native:native||`Destination · ${region}`,index}));
+const $ = id=>document.getElementById(id);
+const flag = c=>c.iso ? [...c.iso].map(l=>String.fromCodePoint(l.charCodeAt(0)+127397)).join('') : '◎';
+const coords = c=>`${Math.abs(c.lat).toFixed(2)}° ${c.lat>=0?'N':'S'} · ${Math.abs(c.lon).toFixed(2)}° ${c.lon>=0?'E':'O'}`;
+const normalize = s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+let selected=countries[0],filter='Tous',focusTarget=null,ready=false,arena=null;
+function renderList(){
+ const q=normalize($('search').value);
+ const visible=countries.filter(c=>(filter==='Tous'||c.region===filter)&&normalize(c.name+' '+c.capital).includes(q));
+ $('count').textContent=visible.length;
+ $('country-list').replaceChildren(...visible.map(c=>{
+  const b=document.createElement('button');b.className='country-row'+(c.id===selected.id?' active':'');b.setAttribute('aria-pressed',c.id===selected.id);
+  b.innerHTML=`<span class="flag">${flag(c)}</span><span><span class="row-name">${c.name}</span><span class="row-region">${c.capital}</span></span><span class="row-arrow">↗</span>`;
+  b.onclick=()=>select(c);return b;
+ }));
+ if(!visible.length){const p=document.createElement('p');p.className='empty';p.textContent='Aucun pays trouvé. Essayez un autre nom.';$('country-list').append(p);}
+}
+$('search').addEventListener('input',renderList);
+document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',x===b);});renderList();});
+document.addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement.tagName!=='INPUT'){e.preventDefault();$('search').focus();}});
+renderList();
+
+const host=$('globe');
+const spherical=(lat,lon,r=2)=>new THREE.Vector3(r*Math.cos(lat*Math.PI/180)*Math.sin(lon*Math.PI/180),r*Math.sin(lat*Math.PI/180),r*Math.cos(lat*Math.PI/180)*Math.cos(lon*Math.PI/180));
+let renderer,scene,camera,controls,landGeo,landColors,baseColors,landIndices,features,lookup,maskWidth=2048,maskHeight=1024,maskPixels;
+const markers=[],raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function setRotation(on){if(!controls)return;controls.autoRotate=on;$('rotate').textContent=on?'Ⅱ':'▷';$('rotate').setAttribute('aria-label',on?'Mettre en pause la rotation':'Reprendre la rotation');$('rotate').title=$('rotate').getAttribute('aria-label');$('rotate').setAttribute('aria-pressed',on);}
+function select(c,move=true){selected=c;$('card-name').textContent=c.name;$('card-native').textContent=c.native;$('card-capital').textContent=c.capital||'—';$('card-flag').textContent=flag(c);$('card-region').textContent=c.region;$('card-index').textContent=c.index===undefined?'◎':String(c.index+1).padStart(2,'0');$('card-coords').textContent=coords(c);$('coordinates').textContent=coords(c).replace(' · ',' / ');renderList();
+ if(ready){const idx=features.findIndex(f=>f.id===c.id);for(let i=0;i<landIndices.length;i++){const o=i*3;if(landIndices[i]===idx){landColors[o]=.58;landColors[o+1]=1;landColors[o+2]=.85;}else{landColors[o]=baseColors[o];landColors[o+1]=baseColors[o+1];landColors[o+2]=baseColors[o+2];}}landGeo.attributes.color.needsUpdate=true;markers.forEach(m=>{const active=m.userData.country.id===c.id;m.material.color.set(active?0x83fff0:0xf2f09a);m.scale.setScalar(active?.14:.095);});if(move){focusTarget=spherical(c.lat,c.lon,camera.position.length());setRotation(false);arena?.choose(c);}arena?.repaint();}
+}
+$('focus').onclick=()=>select(selected);
+$('rotate').onclick=()=>{focusTarget=null;setRotation(!controls?.autoRotate);};
+function zoom(f){if(!camera)return;focusTarget=null;camera.position.setLength(THREE.MathUtils.clamp(camera.position.length()*f,3.1,9));}
+$('zoom-in').onclick=()=>zoom(.82);$('zoom-out').onclick=()=>zoom(1.22);
+$('reset').onclick=()=>{if(!ready)return;focusTarget=spherical(18,15,6.7);setRotation(!reduced);};
+$('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{$('fullscreen').title='Plein écran indisponible dans cet aperçu';}};
+function maskIndex(lat,lon){const x=Math.min(maskWidth-1,Math.max(0,Math.floor((lon+180)/360*maskWidth))),y=Math.min(maskHeight-1,Math.max(0,Math.floor((90-lat)/180*maskHeight)));return maskPixels[(y*maskWidth+x)*4]-1;}
+function makeMask(){const canvas=document.createElement('canvas');canvas.width=maskWidth;canvas.height=maskHeight;const ctx=canvas.getContext('2d',{willReadFrequently:true});features.forEach((f,index)=>{ctx.fillStyle=`rgb(${index+1},0,0)`;const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates;for(const poly of polys){ctx.beginPath();for(const ring of poly){ring.forEach(([lon,lat],i)=>{const x=(lon+180)/360*maskWidth,y=(90-lat)/180*maskHeight;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();}ctx.fill('evenodd');}});maskPixels=ctx.getImageData(0,0,maskWidth,maskHeight).data;}
+function glowTexture(){const c=document.createElement('canvas');c.width=c.height=64;const ctx=c.getContext('2d'),g=ctx.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'#ffffffff');g.addColorStop(.13,'#ffffffee');g.addColorStop(.3,'#ffffff66');g.addColorStop(1,'#ffffff00');ctx.fillStyle=g;ctx.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);}
+async function init(){
+ renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,2));host.appendChild(renderer.domElement);
+ scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(42,1,.1,100);camera.position.copy(spherical(18,15,6.7));
+ controls=new OrbitControls(camera,renderer.domElement);controls.enablePan=false;controls.enableDamping=true;controls.dampingFactor=.06;controls.minDistance=3.1;controls.maxDistance=9;controls.autoRotateSpeed=.35;controls.rotateSpeed=.65;setRotation(!reduced);controls.addEventListener('start',()=>{focusTarget=null;setRotation(false);});
+ const earth=new THREE.Mesh(new THREE.SphereGeometry(2,96,64),new THREE.MeshBasicMaterial({color:0x07191f}));scene.add(earth);
+ // Fresnel atmospheric halo, independent of the light and view direction.
+ scene.add(new THREE.Mesh(new THREE.SphereGeometry(2.08,96,64),new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.BackSide,blending:THREE.AdditiveBlending,uniforms:{},vertexShader:'varying vec3 n; varying vec3 v; void main(){vec4 p=modelViewMatrix*vec4(position,1.);n=normalize(normalMatrix*normal);v=normalize(-p.xyz);gl_Position=projectionMatrix*p;}',fragmentShader:'varying vec3 n;varying vec3 v;void main(){float f=pow(1.-abs(dot(normalize(n),normalize(v))),3.);gl_FragColor=vec4(.17,.8,.86,f*.48);}'})));
+ const grid=[];for(let lat=-60;lat<=60;lat+=30)for(let lon=-180;lon<180;lon+=2){grid.push(...spherical(lat,lon,2.008).toArray(),...spherical(lat,lon+2,2.008).toArray());}for(let lon=-180;lon<180;lon+=30)for(let lat=-90;lat<90;lat+=2){grid.push(...spherical(lat,lon,2.008).toArray(),...spherical(lat+2,lon,2.008).toArray());}
+ const gridGeo=new THREE.BufferGeometry();gridGeo.setAttribute('position',new THREE.Float32BufferAttribute(grid,3));scene.add(new THREE.LineSegments(gridGeo,new THREE.LineBasicMaterial({color:0x31515a,transparent:true,opacity:.24})));
+ const res=await fetch('./data/world.geo.json');if(!res.ok)throw Error('Données géographiques indisponibles');features=(await res.json()).features;makeMask();
+ const positions=[],colors=[],indices=[];for(let lat=-85;lat<85;lat+=1.05){const step=1.05/Math.max(.15,Math.cos(lat*Math.PI/180));for(let lon=-180;lon<180;lon+=step){const idx=maskIndex(lat,lon);if(idx<0)continue;positions.push(...spherical(lat,lon,2.017).toArray());const lum=.68+Math.random()*.25;colors.push(.33*lum,.77*lum,.78*lum);indices.push(idx);}}
+ landIndices=indices;landColors=new Float32Array(colors);baseColors=new Float32Array(colors);landGeo=new THREE.BufferGeometry();landGeo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));landGeo.setAttribute('color',new THREE.BufferAttribute(landColors,3));
+ scene.add(new THREE.Points(landGeo,new THREE.PointsMaterial({size:.018,vertexColors:true,transparent:true,opacity:.9,sizeAttenuation:true})));
+ const borders=[];features.forEach(f=>{const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates;polys.forEach(poly=>poly.forEach(ring=>{for(let i=1;i<ring.length;i++)borders.push(...spherical(ring[i-1][1],ring[i-1][0],2.014).toArray(),...spherical(ring[i][1],ring[i][0],2.014).toArray());}));});
+ const bGeo=new THREE.BufferGeometry();bGeo.setAttribute('position',new THREE.Float32BufferAttribute(borders,3));scene.add(new THREE.LineSegments(bGeo,new THREE.LineBasicMaterial({color:0x4f9caa,transparent:true,opacity:.23})));
+ const texture=glowTexture();countries.forEach(c=>{const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,color:0xf2f09a,transparent:true,depthTest:true,depthWrite:false,blending:THREE.AdditiveBlending}));sprite.position.copy(spherical(c.lat,c.lon,2.045));sprite.scale.setScalar(.095);sprite.userData.country=c;markers.push(sprite);scene.add(sprite);const ring=new THREE.Mesh(new THREE.RingGeometry(.017,.022,24),new THREE.MeshBasicMaterial({color:0xe8ec86,transparent:true,opacity:.65,side:THREE.DoubleSide}));ring.position.copy(spherical(c.lat,c.lon,2.025));ring.lookAt(spherical(c.lat,c.lon,3));scene.add(ring);});
+ const stars=[];for(let i=0;i<600;i++){const p=new THREE.Vector3().randomDirection().multiplyScalar(18+Math.random()*12);stars.push(...p.toArray());}const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.Float32BufferAttribute(stars,3));scene.add(new THREE.Points(sg,new THREE.PointsMaterial({size:.024,color:0x8bbac5,transparent:true,opacity:.4})));
+ function resize(){const {width,height}=host.getBoundingClientRect();camera.aspect=width/height;camera.fov=THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(21))/Math.min(1,camera.aspect)));camera.updateProjectionMatrix();renderer.setSize(width,height);}
+ new ResizeObserver(resize).observe(host);resize();ready=true;select(selected,false);$('loading').style.display='none';
+ arena=createArena({countries,features,scene,camera,controls,spherical,glowTexture,focus:target=>{focusTarget=target;},paint:(teams,colors)=>{
+   const ids=teams.map(c=>features.findIndex(f=>f.id===c.id)),rgb=colors.map(c=>new THREE.Color(c));
+   for(let i=0;i<landIndices.length;i++){const team=ids.indexOf(landIndices[i]),o=i*3;if(team>=0){landColors[o]=rgb[team].r;landColors[o+1]=rgb[team].g;landColors[o+2]=rgb[team].b;}else{landColors[o]=baseColors[o];landColors[o+1]=baseColors[o+1];landColors[o+2]=baseColors[o+2];}}
+   landGeo.attributes.color.needsUpdate=true;markers.forEach(m=>{const team=teams.findIndex(c=>c.id===m.userData.country.id);m.material.color.set(team>=0?colors[team]:0x476b76);m.scale.setScalar(team>=0?.17:.055);});
+ }});
+ let last=performance.now();function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;if(document.hidden)return;arena.tick(dt);if(focusTarget){camera.position.lerp(focusTarget,1-Math.exp(-dt*5));if(camera.position.distanceTo(focusTarget)<.005)focusTarget=null;}controls.update(dt);renderer.render(scene,camera);}requestAnimationFrame(frame);
+ function hit(e){const rect=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);const m=raycaster.intersectObjects(markers).find(h=>h.object.position.clone().normalize().dot(camera.position.clone().sub(h.object.position).normalize())>0);if(m)return m.object.userData.country;const hit=raycaster.intersectObject(earth)[0];if(!hit)return null;const p=hit.point.clone().normalize(),lat=Math.asin(p.y)*180/Math.PI,lon=Math.atan2(p.x,p.z)*180/Math.PI;const idx=maskIndex(lat,lon);if(idx<0)return null;const f=features[idx];return countries.find(c=>c.id===f.id)||{id:f.id,name:f.properties.name,region:'MONDE',lat,lon,native:'Pays du monde · Natural Earth'};}
+ let down=null;host.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY};});host.addEventListener('pointerup',e=>{if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)<5){const c=hit(e);if(c)select(c);}down=null;});host.addEventListener('pointermove',e=>{if(e.buttons){$('tooltip').style.display='none';return;}const c=hit(e),tip=$('tooltip');if(!c){tip.style.display='none';return;}tip.textContent=`${flag(c)} ${c.name}`;const rect=host.getBoundingClientRect();tip.style.display='block';tip.style.left=Math.min(e.clientX-rect.left+15,rect.width-tip.offsetWidth-10)+'px';tip.style.top=e.clientY-rect.top-35+'px';});host.addEventListener('pointerleave',()=>{$('tooltip').style.display='none';down=null;});
+}
+init().catch(error=>{console.error(error);$('loading').textContent='Le globe ne peut pas démarrer. Vérifiez que WebGL est activé, puis rechargez la page.';});
