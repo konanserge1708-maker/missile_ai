@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import {INVASION,PLANET_SHIELD,ALIEN_WEAPONS,mothershipPoint,mothershipMotion,dronePoint} from './invasion-engine.js?v=1.7.0';
-import {createPlanetShield} from './planet-shield.js?v=1.7.0';
+import {INVASION,PLANET_SHIELD,ALIEN_WEAPONS,mothershipPoint,mothershipMotion,dronePoint} from './invasion-engine.js?v=1.8.0';
+import {createPlanetShield} from './planet-shield.js?v=1.8.0';
 import {createAlienArc} from './alien-beams.js?v=1.5.0';
 import {createWhaleMothership} from './whale-mothership.js?v=1.4.1';
 import {aimMothership} from './mothership-frame.js?v=1.4.1';
@@ -54,16 +54,16 @@ export function createInvasionVisuals({scene,camera,spherical,glowTexture}){
  const label=document.createElement('div');label.className='mothership-label';label.hidden=true;document.getElementById('globe').append(label);
  let fire=null,recovery=null,lastRay=null;
  const smooth=t=>{const x=THREE.MathUtils.clamp(t,0,1);return x*x*(3-2*x);};
- function impactRadius(target){return fire?.blockedTargets.has(target.to+':'+target.zone)?PLANET_SHIELD.radius:2.045;}
+ function impactRadius(target){return fire?.blockedTargets.get(target.to+':'+target.zone)||2.045;}
  function clear(){planetShield.clear();fire=null;recovery=null;lastRay=null;heavyRay.visible=muzzleFlash.visible=impactGlow.visible=impactRing.visible=false;arcs.forEach(a=>a.group.visible=false);droneModels.forEach(d=>d.visible=false);droneBolts.forEach(b=>{b.dot.visible=b.trail.visible=false;});rays.forEach(r=>r.visible=false);targets.forEach(t=>t.group.visible=false);warnings.forEach(w=>w.visible=false);plasma.forEach(p=>{p.group.visible=false;p.trail.visible=false;});label.hidden=true;}
  function event(e){
  planetShield.event(e);
- if(e.type==='invasionHit'&&fire&&e.id===fire.id&&e.planetBlocked)fire.blockedTargets.add(e.to+':'+e.zone);
+ if(e.type==='invasionHit'&&fire&&e.id===fire.id&&e.planetBlocked)fire.blockedTargets.set(e.to+':'+e.zone,e.techRadius||PLANET_SHIELD.radius);
  if(['rayInterrupted','alienAttackCancelled'].includes(e.type)&&lastRay){recovery={point:lastRay.point,start:e.time,weight:smooth((e.time-lastRay.visibleAt)/2.8)};lastRay=null;}
  if(e.type==='invasionFire'){
   const ports=e.attack.kind==='ion'?['reactor']:e.attack.kind==='sweep'?['plasmaLeft','reactor','plasmaRight']:['weapons'];
   const frame=pose({point:e.origin,motion:reduced?{altitude:0,yaw:0,pitch:0,roll:0}:e.motion});
-  fire={...e.attack,at:e.time,blockedTargets:new Set(),sources:ports.map(port=>whale.anchors[port].clone().applyQuaternion(frame.quaternion).add(frame.center))};
+  fire={...e.attack,at:e.time,blockedTargets:new Map(),sources:ports.map(port=>whale.anchors[port].clone().applyQuaternion(frame.quaternion).add(frame.center))};
   if(e.attack.kind==='ray'){lastRay=null;recovery=null;}
  }}
  function pose(state){

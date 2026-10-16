@@ -9,12 +9,12 @@ Globe 3D en HTML, CSS et JavaScript natifs avec Three.js et OrbitControls. Bibli
 ## Modes
 
 - Duel : deux nations.
-- Invasion : trois à huit nations alliées contre un vaisseau mère et une escadrille de dix chasseurs. Choisir la taille de la coalition dans « Nations ».
-- Chacun pour soi : trois à huit nations, cibles choisies par les IA, alliances temporaires de 12 secondes et ruptures possibles.
-- Équipes : quatre ou six nations, A/C/E contre B/D/F, sans tirs entre membres d’une équipe.
+- Invasion : trois à quinze nations alliées contre un vaisseau mère et une escadrille de dix chasseurs. Choisir la taille de la coalition dans « Nations ».
+- Chacun pour soi : trois à quinze nations, cibles choisies par les IA, alliances temporaires de 12 secondes et ruptures possibles.
+- Équipes : de quatre à quatorze nations par nombres pairs, emplacements alternés entre deux camps, sans tirs entre membres d’une équipe.
 - Tournoi : quatre nations, deux demi-finales et une finale enchaînées automatiquement. Chaque manche réinitialise les ressources ; statistiques cumulées et tableau des résultats. Une égalité est départagée aux dégâts infligés.
 
-Choisir un pays et un profil pour chaque emplacement (A à H pour huit nations). Cliquer sur une lettre puis dans la liste ou sur un marqueur est aussi possible. Sélectionner une nation déjà affectée échange les deux pays ; chaque profil reste attaché à son emplacement. La configuration est verrouillée pendant la partie. Réinitialiser pour la modifier.
+Choisir un pays et un profil pour chaque emplacement (A à O pour quinze nations). Cliquer sur une lettre puis dans la liste ou sur un marqueur est aussi possible. Sélectionner une nation déjà affectée échange les deux pays ; chaque profil reste attaché à son emplacement. La configuration est verrouillée pendant la partie. Réinitialiser pour la modifier.
 
 ### Flottes navales dans tous les modes
 
@@ -110,3 +110,48 @@ Simulation fictive, sans modélisation des capacités militaires réelles. Les c
 - Polices DM Sans et Manrope : Google Fonts.
 
 `dist/app.js` : pays et globe. `dist/battle-engine.js` : règles et tournoi. `dist/arena.js` : interface, effets et caméra. `dist/arena.css` : présentation du jeu. `dist/territory.js` : échantillonnage des points dans les pays. `dist/orbital.js` : mouvement orbital. `dist/orbital-visuals.js` : satellites, lasers et boucliers. `dist/shield-geometry.js` : coque territoriale surélevée. `dist/zone-visuals.js` : sites stratégiques et étiquettes.
+
+## Projet de dernier espoir — mode Invasion
+
+En mode Invasion, les cartes de technologie en haut de la préparation permettent de choisir le projet commun avant le lancement (Destroyer sélectionné par défaut), ou de laisser les IA décider. Le choix se verrouille pendant le combat et redevient disponible après réinitialisation. Le panneau permet aussi de désactiver cette variante. Le choix automatique est pondéré par les profils (offensive, protection, opportunisme). Une seule technologie, une seule activation par partie. La variante renforce la coque ennemie de 45 % et fait monter progressivement la puissance de l’assaut pour permettre une véritable phase de survie ; désactiver la recherche conserve la mission classique.
+
+| Projet | Recherche nominale | Déploiement |
+|---|---:|---|
+| Destroyer terrestre | 85 s | Coque 3D blindée, manœuvres autour de l’ennemi, six missiles guidés toutes les 4 s après 3 s d’approche ; dégâts à l’impact, 45 s maximum, PV propres, protection des nations ; destructible |
+| Dragon cosmique | 75 s | Invocation, charge, énorme boule d’énergie ; impact unique après 7 s, disparition après 11 s |
+| Convergence des nations | 70 s | Faisceaux nationaux courbes réunis en un point, puis gros rayon pendant 6 s |
+| Triple rempart | 60 s | Trois couches supplémentaires bleues en pentagones/hexagones, destructibles, non rechargeables, 35 s maximum |
+| Déluge mondial | 65 s | Vagues continues pendant 9 s, puis fin des vols ; sites répartis sur les 50 pays référencés, environ 180 missiles |
+| Retour temporel | 90 s | Restauration réelle d’environ 30 s de combat, animation de 3 s ; la technologie reste consommée |
+| Soleil artificiel | 85 s | Étoile 3D plus grande que la Terre, apparition progressive puis dégâts continus au vaisseau, 20 s maximum |
+
+Le financement économe produit 0,75 seconde de recherche par seconde pour 0,6 énergie par nation vivante ; l’équilibré produit 1 pour 1,4 énergie ; le prioritaire produit 1,35 pour 2,8 énergie. Le financement concurrence donc les missiles, lasers, boucliers et réparations. Les tours dorées ont 36 PV. Les dégâts qui traversent les défenses les endommagent ; le vaisseau peut les cibler après avoir détecté les travaux. Leur état et la perte de nations ralentissent la recherche sans effacer la progression. Un débit minimal reste possible tant que la coalition peut financer le projet. Les temps affichés sont des estimations actualisées, pas une garantie de disponibilité.
+
+Les IA attendent une occasion après la fin de la recherche (attaque majeure annoncée, défense ennemie affaiblie, nation en danger), puis déclenchent automatiquement le projet. L’attente est plafonnée pour ne pas conserver indéfiniment une technologie prête. Aucun bouton de réutilisation. Le panneau affiche le projet, le financement, la progression, les centres restants, l’énergie investie et le compteur 0/1 ou 1/1. Les effets continuent sur le même temps de simulation, respectent pause et vitesse et sont effacés à la réinitialisation.
+
+Le retour temporel utilise des instantanés espacés d’environ une demi-seconde, gardés hors de l’état du projet. PV, zones, énergie, défenses, modules ennemis, positions orbitales, missiles, drones, navires et attaques en attente reviennent au dernier instantané précédant trente secondes plus tôt. La recherche et sa consommation ne sont pas rembobinées. Les projectiles affichés sont reconstruits ; le combat est suspendu pendant l’animation inversée et la coalition conserve trente secondes de connaissance tactique pour viser le canon. Les dégâts visuels au sol sont nettoyés. Cela empêche les boucles infinies tout en donnant aux IA une seconde chance.
+
+Les grandes capacités élargissent si nécessaire le cadrage global pour que leurs modèles restent visibles ; elles n’ajoutent pas de suivi rapproché aux missiles ordinaires. Le soleil reste à distance, sur le côté du combat, et n’émet pas de flash plein écran. Les attaques de la technologie modifient réellement le combat et ne sont pas seulement décoratives.
+
+`research.test.js` vérifie les sept effets, financement, sabotage, pause, remise à zéro, réserves finies des couches, dégâts du Destroyer, bombardement depuis les 50 sites, restauration temporelle, usage unique et parties complètes de trois et huit nations. `dist/research.js` contient les règles et instantanés ; `dist/research-visuals.js` contient les modèles et animations 3D.
+
+
+### Arsenal tactique des nations
+
+En duel, chacun pour soi, équipes et tournoi, l’option « Arsenal tactique des nations » active deux armes spéciales et un bouclier par nation. Les choix sont modifiables avant le lancement, conservés lorsque le pays est changé ou la partie réinitialisée, puis verrouillés pendant le combat. L’option est séparée des technologies de la coalition du mode Invasion. Sans cette option, le moteur conserve les règles classiques (`specialArsenal: true` pour l’API).
+
+- Désarmement : 28 énergie, recharge 19 s, missile interceptable. À l’impact, les silos sont neutralisés 5 s, ou 1,5 s sous un bouclier encore chargé. Les autres défenses et les canaux siphons continuent de fonctionner.
+- Siphon : 25 énergie, recharge 26 s, canal de 4 s drainant jusqu’à 6 points de bouclier par seconde. Récupère 45 % de la charge réellement absorbée, sans dépasser 40. Aucun dégât direct aux PV. S’interrompt si la cible perd son bouclier, meurt ou devient alliée.
+- Mines orbitales : 28 énergie, recharge 28 s, cinq mines valables 16 s. Une mine intercepte un missile survivant aux défenses initiales à l’approche du territoire ; deux repoussent un satellite à son arrivée. Les mines ne consomment pas les intercepteurs classiques.
+- Réseau solidaire : transfère jusqu’à 7 points/s à un allié moins protégé, au prix de 0,6 énergie par point. Conserve au moins 8 points pour le donneur. Fonctionne entre coéquipiers et partenaires de trêve, jamais avec un ennemi.
+- Carapace réactive : six secteurs territoriaux. Chaque impact renforce son secteur jusqu’à 42 % de réduction, en affaiblissant les autres. L’adaptation dépend de l’énergie reçue, pas du nombre d’images affichées.
+- Miroir énergétique : renvoie 35 % de l’énergie laser ou siphon absorbée. Une réflexion ne peut pas être réfléchie à nouveau. À 12 de chaleur, le miroir évacue sa chaleur et suspend la réflexion pendant 6 s ; la protection normale reste active.
+
+Les champs de mines, les canaux siphons, les transferts alliés, les réflexions et les silos désarmés sont visibles en 3D. Le bouclier réactif illumine les secteurs renforcés ; le miroir devient orange pendant sa surchauffe. Pause, vitesse, fin de match et réinitialisation utilisent le même temps de simulation.
+
+
+### Panneaux compacts
+
+Les cartes des combattants gardent les PV, l’énergie, le bouclier et les recharges spéciales visibles. Les satellites, stratégies, installations, contre-mesures, intercepteurs et statistiques se déplient avec « Détails tactiques ». En Invasion, les systèmes et l’arsenal ennemis sont repliés ; les jauges et alertes d’attaque restent visibles. La scène 3D réserve l’espace réellement occupé par les panneaux grâce à ResizeObserver, y compris avec huit nations, sur mobile et lorsqu’un panneau est déplié.
+
+Les effectifs de neuf à quinze nations disposent de couleurs individuelles et d’une liste de cartes défilante, accessible au clavier et sur mobile. Cette liste est limitée en hauteur afin de préserver la zone du globe. Les centres de recherche et la convergence prennent en compte les quinze alliés ; le déluge mondial fait participer chaque nation.

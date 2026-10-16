@@ -41,3 +41,22 @@ body[data-expanded-roster="true"] .world:has(.scoreboard) #globe{inset:var(--sce
 /* Planetary net is exclusive to Invasion; the command shares the simulation dock. */
 .planet-shield-option[hidden],#planet-shield-toggle[hidden]{display:none}
 .simulation-controls .planet-shield-toggle[aria-pressed="true"]{color:#9cfbec;border-color:#7ae5d966;background:#123733e8}
+.research-options{padding:13px 12px;border:1px solid #e6d39533;border-radius:7px;background:#d3b45c07;margin:0 0 15px}.research-options[hidden],.research-hud[hidden]{display:none}.research-options .salvo-option{color:#eddb9d;font-size:10px}.research-options>label{display:block;color:#ab9c7a;font-size:8px;letter-spacing:1px;margin:10px 0 6px}.research-options>label.salvo-option{display:grid;letter-spacing:0}.research-options select{width:100%;font-size:10px}.research-options p{color:var(--muted);font-size:10px;line-height:1.6;margin:10px 0 0}.research-hud{padding:11px 14px;margin:0 0 9px;border:1px solid #c7b37444;border-radius:7px;background:#131d26ee;backdrop-filter:blur(15px)}.research-hud>div{display:flex;justify-content:space-between;gap:12px;align-items:baseline}.research-hud strong{color:#eed99a;font-size:12px;font-weight:500}.research-hud span{font-size:9px;color:#c4bb9c}.research-hud progress{width:100%;height:5px;display:block;appearance:none;border:0;background:#ffffff12;margin:8px 0}.research-hud progress::-webkit-progress-bar{background:#ffffff12;border-radius:4px}.research-hud progress::-webkit-progress-value{background:#e5cf87;border-radius:4px}.research-hud progress::-moz-progress-bar{background:#e5cf87}.research-hud small{font-size:8px;color:#96a7b6}.technology-banner{position:absolute;z-index:4;left:50%;top:58%;transform:translate(-50%,-50%);max-width:85%;padding:9px 15px;border:1px solid #efd99e66;background:#0d1b2be8;border-radius:5px;font-size:10px;color:#ffe9ae;letter-spacing:1px;text-align:center;pointer-events:none}.technology-banner[hidden]{display:none}body[data-mode='invasion'] .world:has(.scoreboard) #globe{bottom:295px}body[data-expanded-roster='true'][data-mode='invasion'] .world:has(.scoreboard) #globe{bottom:295px}
+@media(max-width:700px){.research-hud>div{flex-direction:column;gap:5px}.research-hud strong{font-size:11px}.research-hud span{font-size:8px}.research-hud small{font-size:7px}.technology-banner{font-size:9px;top:65%}body[data-mode='invasion'] .world{height:1450px;min-height:1450px}body[data-mode='invasion'] .world:has(.scoreboard) #globe{bottom:330px}}
+
+.research-hud{padding:8px 12px}.research-hud progress{margin:6px 0;height:4px}.research-hud small{line-height:1.3}
+
+.research-options h2{font-size:15px;font-weight:500;letter-spacing:0;color:#f4deb0;margin:13px 0 6px}
+.technology-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:12px 0}
+.technology-card{position:relative;display:grid;grid-template-columns:13px minmax(0,1fr);column-gap:6px;align-content:center;padding:10px 7px;min-height:63px;border:1px solid #6b85932e;border-radius:6px;background:#111e28;cursor:pointer;transition:border-color .15s,background .15s}
+.technology-card input{width:12px;height:12px;margin:1px 0 0;accent-color:#e5cf87;grid-row:1/3}
+.technology-card strong{font-size:10px;line-height:1.3;font-weight:500;color:#d7e3ec;overflow-wrap:anywhere}
+.technology-card small{font-size:8px;line-height:1.4;color:#8c9eac;margin-top:4px}
+.technology-card:has(input:checked){border-color:#e5cf87;background:#51472b40;box-shadow:inset 0 0 0 1px #e5cf8722}
+.technology-card:has(input:focus-visible){outline:2px solid #a4e8ff;outline-offset:2px}
+.technology-card:has(input:disabled){opacity:.65;cursor:default}
+
+.kit-label{display:block;color:#9bb6c4;font-size:7px;letter-spacing:.4px;margin-top:8px}.kit-label select{display:block;width:100%;font-size:9px;margin-top:4px;padding:7px 5px}.special-status{font-size:8px;color:#b9ddec;line-height:1.5;margin:3px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.special-status[hidden]{display:none}
+.salvo-option[hidden]{display:none}
+
+.special-reloads{font-size:7px;color:#9daec4;line-height:1.5}.special-reloads[hidden]{display:none}

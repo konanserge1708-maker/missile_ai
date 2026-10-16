@@ -1,0 +1,87 @@
+/* Compact panels and measured scene bounds supersede the legacy fixed offsets. */
+body main{height:auto;min-height:0!important}
+body .world{height:var(--arena-height,calc(100dvh - 88px))!important;min-height:0!important}
+body .sidebar{max-height:calc(100dvh - 88px)}
+body .world:has(.scoreboard) #globe{inset:var(--play-top,190px) 0 var(--play-bottom,190px)!important}
+body .scoreboard{left:24px;right:70px;gap:7px;align-items:start;grid-template-columns:repeat(2,minmax(0,1fr))}
+body .scoreboard[data-count='3']{grid-template-columns:repeat(3,minmax(0,1fr))}
+body .scoreboard[data-count='4']{grid-template-columns:repeat(4,minmax(0,1fr))}
+body .scoreboard[data-count='5'],body .scoreboard[data-count='6']{grid-template-columns:repeat(3,minmax(0,1fr))}
+body .scoreboard[data-count='7'],body .scoreboard[data-count='8']{grid-template-columns:repeat(4,minmax(0,1fr))}
+body .scoreboard .fighter{padding:6px 9px;border-radius:7px}
+body .fighter>div:first-child{gap:6px;flex-wrap:nowrap;align-items:center}
+body .fighter h2{font-size:12px;min-width:0}
+body .fighter strong{font-size:16px;line-height:1.1}
+body .fighter strong small{display:inline;font-size:7px}
+body .fighter .team-tag{display:none}
+body .fighter .health{height:4px;margin:4px 0}
+body .fighter .energy-line{font-size:8px;letter-spacing:0;gap:4px}
+body .fighter .energy-meter{margin:3px 0;height:2px}
+body .fighter .shield-meter{margin:2px 0 3px;height:2px}
+body .fighter .special-reloads{font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;margin:3px 0}
+.fighter-details{pointer-events:auto;font-size:9px;color:#9ab1c1;margin-top:2px}
+.fighter-details summary,.ship-details summary{cursor:pointer;width:fit-content;min-height:20px;line-height:20px;color:#acc9d5;font-size:9px}
+.fighter-details summary:focus-visible,.ship-details summary:focus-visible{outline:2px solid #77ddd4;outline-offset:2px;border-radius:2px}
+.fighter-details[open]{border-top:1px solid #ffffff12;padding-top:3px}
+.fighter-details .orbital-status,.fighter-details .counter-status,.fighter-details .zone-status,.fighter-details .ai-strategy,.fighter-details .special-status{white-space:normal;font-size:9px;line-height:1.5}
+.fighter-details .defense-stock{font-size:8px;margin:4px 0;padding:4px 0;min-height:0}
+.fighter-details small{font-size:8px;color:#7f939d}
+body .invasion-hud{left:24px;right:70px;top:50px;padding:7px 11px;border-radius:7px}
+body .ship-heading{font-size:8px;gap:8px}
+body .ship-heading .eyebrow{font-size:7px}
+body .ship-title{margin:4px 0}
+body .ship-title h2{font-size:16px;margin:0;line-height:1.2}
+body .ship-title b{font-size:13px;margin-left:5px}
+body .ship-title>span{font-size:8px}
+body .ship-shield-row{font-size:8px;margin:4px 0}
+body .invasion-alert{font-size:9px;min-height:0;padding-top:5px;line-height:1.4}
+body #ray-progress{margin-top:2px}
+.ship-details{pointer-events:auto;margin-top:3px}
+body .ship-systems{margin:6px 0;gap:12px}
+body .ship-systems label{font-size:9px}
+body #ray-counter{font-size:9px;line-height:1.5;margin:5px 0}
+body .battle-dock{left:24px;right:70px;bottom:35px}
+body .journal{padding:8px 11px}
+body .journal .list-heading{margin-bottom:4px;font-size:7px}
+body .journal ol{height:44px}
+body .journal li{line-height:21px;font-size:9px}
+body .simulation-controls{margin-bottom:6px;gap:6px}
+body .diplomacy{font-size:8px;margin-bottom:4px;min-height:12px}
+body .research-hud{padding:7px 10px;margin-bottom:6px}
+body .research-hud strong{font-size:11px}
+body .research-hud small{font-size:8px}
+body .world .view-controls{top:var(--controls-top,55%)!important}
+body .world:has(.scoreboard) .cinematic-label{top:calc(var(--play-top,190px) + 12px)!important}
+@media(max-width:1100px){
+ body .scoreboard[data-count]{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body .scoreboard,body .invasion-hud,body .battle-dock{left:18px;right:60px}
+}
+@media(max-width:700px){
+ body .sidebar{max-height:none}
+ body .scoreboard,body .invasion-hud,body .battle-dock{left:15px;right:15px}
+ body .fighter h2{font-size:12px}
+ body .fighter .energy-line{font-size:7px}
+ body .scoreboard .fighter{padding:6px 8px}
+ body .ship-heading>span:last-child{max-width:55%;text-align:right}
+ body .research-hud>div{flex-direction:row;align-items:baseline;gap:6px}
+ body .research-hud span{font-size:8px;text-align:right}
+ body .research-hud small{display:block;line-height:1.5}
+ body .simulation-controls{row-gap:6px}
+ body .world .view-controls{right:8px}
+ body .battle-dock{bottom:35px}
+}
+
+/* Keep the event feed available without occupying the observation area. */
+body details.journal{padding:7px 10px}
+body details.journal summary{font-size:9px;color:#9dbac5;cursor:pointer;line-height:18px}
+body details.journal summary::marker{color:#77ddd4}
+body details.journal summary:focus-visible{outline:2px solid #77ddd4;outline-offset:2px}
+body details.journal[open] summary{margin-bottom:5px}
+body details.journal ol{height:64px}
+
+/* Large matches keep their cards in a bounded, keyboard-scrollable roster. */
+body[data-large-roster='true'] .scoreboard{grid-template-columns:repeat(5,minmax(0,1fr));max-height:235px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#49717e #10212b;pointer-events:auto;padding-right:5px;align-content:start}
+body[data-large-roster='true'] .scoreboard::before{content:attr(data-count) ' NATIONS · FAITES DÉFILER LES CARTES';grid-column:1/-1;font-size:8px;letter-spacing:.6px;color:#8bb5c4;padding:0 0 3px}
+body[data-large-roster='true'] .scoreboard:focus-visible{outline:2px solid #77ddd4;outline-offset:3px}
+@media(max-width:1250px){body[data-large-roster='true'] .scoreboard{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){body[data-large-roster='true'] .scoreboard{grid-template-columns:repeat(2,minmax(0,1fr));max-height:230px}}

@@ -6,7 +6,8 @@
   <title>Atlas Arena — Duel des nations</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23080d12' stroke='%2377ddd4' stroke-width='3'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="arena.css?v=1.7.0">
+  <link rel="stylesheet" href="arena.css?v=1.9.0">
+  <link rel="stylesheet" href="compact-hud.css?v=1.10.0">
   <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 </head>
 <body>
@@ -14,8 +15,17 @@
 <main>
   <aside class="sidebar">
     <div class="eyebrow">STRATÉGIES AUTONOMES · CONFLITS FICTIFS</div><h1>Le monde.<br><em>Votre arène.</em></h1><p class="intro">Composez les camps et leurs stratégies. <br>Les IA prennent les commandes.</p>
-    <div class="mode-controls"><label>MODE<select id="game-mode"><option value="duel">Duel</option><option value="ffa">Chacun pour soi</option><option value="teams">Équipes</option><option value="tournament">Tournoi · 4 nations</option><option value="invasion">Invasion · 3 à 8 nations</option></select></label><label>NATIONS<select id="nation-count"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></label></div>
-    <details id="invasion-guide" class="invasion-guide" hidden><summary>Mission : une Terre, jusqu’à huit alliés</summary><p>Détruisez le vaisseau mère. Les radars partagent les alertes, les satellites percent son bouclier et les missiles visent ses systèmes.</p><p>Le combat commence par des arcs violets qui frappent simultanément deux installations par nation. Dix chasseurs peuvent quitter le vaisseau, changer de région et mitrailler les nations en continu. Les radars et les intercepteurs permettent de les abattre.</p><p>Arsenal : faisceaux courbés, rayon lourd, plasma et impulsion ionique (−30 énergie, même sous bouclier), bombardement et canons des chasseurs.</p><p>Rayon lourd : 10 s de charge. Infligez 90 dégâts réels au canon pendant la charge (240 à huit nations) pour l’interrompre, détruisez-le ou renforcez la cible. Détruire le canon réduit l’arsenal ; neutraliser le réacteur désactive les armes ioniques et les multifaisceaux. Les moteurs ralentissent les manœuvres et les attaques.</p></details>
+    <div class="mode-controls"><label>MODE<select id="game-mode"><option value="duel">Duel</option><option value="ffa">Chacun pour soi</option><option value="teams">Équipes</option><option value="tournament">Tournoi · 4 nations</option><option value="invasion">Invasion · 3 à 15 nations</option></select></label><label>NATIONS<select id="nation-count"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option></select></label></div>
+    <details id="invasion-guide" class="invasion-guide" hidden><summary>Mission : une Terre, jusqu’à quinze alliés</summary><p>Détruisez le vaisseau mère. Les radars partagent les alertes, les satellites percent son bouclier et les missiles visent ses systèmes.</p><p>Le combat commence par des arcs violets qui frappent simultanément deux installations par nation. Dix chasseurs peuvent quitter le vaisseau, changer de région et mitrailler les nations en continu. Les radars et les intercepteurs permettent de les abattre.</p><p>Arsenal : faisceaux courbés, rayon lourd, plasma et impulsion ionique (−30 énergie, même sous bouclier), bombardement et canons des chasseurs.</p><p>Rayon lourd : 10 s de charge. Infligez 90 dégâts réels au canon pendant la charge (450 à quinze nations) pour l’interrompre, détruisez-le ou renforcez la cible. Détruire le canon réduit l’arsenal ; neutraliser le réacteur désactive les armes ioniques et les multifaisceaux. Les moteurs ralentissent les manœuvres et les attaques.</p></details>
+    <section id="research-options" class="research-options" hidden>
+      <label class="salvo-option"><input id="research-enabled" type="checkbox" checked>Projet de dernier espoir<span>Survivre à la recherche · une seule utilisation</span></label>
+      <h2 id="technology-title">Choisissez votre technologie</h2><p>Un projet commun à toutes les nations alliées. Tenez jusqu’à la fin de sa recherche.</p>
+      <select id="technology-choice" hidden aria-hidden="true" tabindex="-1"><option value="auto">Choix de la coalition IA</option></select>
+      <div id="technology-cards" class="technology-cards" role="group" aria-labelledby="technology-title"></div>
+      <label for="research-funding">FINANCEMENT COLLECTIF</label><select id="research-funding"></select>
+      <p id="research-description"></p><p>Mission longue : coque ennemie renforcée et assaut progressif. Protégez les tours de recherche dorées.</p>
+    </section>
+    <label id="special-arsenal-option" class="salvo-option"><input type="checkbox" id="special-arsenal-enabled" checked>Arsenal tactique des nations<span>2 armes spéciales et 1 bouclier par nation · réglables ci-dessous</span></label>
     <div id="nation-setup" class="nation-setup"></div><div id="bracket" class="bracket" hidden></div>
     <label id="planet-shield-option" class="salvo-option planet-shield-option" hidden><input type="checkbox" id="planet-shield-enabled" checked>Activer le bouclier planétaire au lancement <span>Filet géodésique 3D · réserve collective · mode Invasion</span></label>
     <label class="salvo-option"><input type="checkbox" id="naval-enabled" checked>Déployer les flottes navales <span>Un navire par nation · patrouilles en mer · tirs périodiques</span></label>
@@ -38,15 +48,17 @@
       <div class="ship-title"><h2>Vaisseau mère</h2><span>INTÉGRITÉ <b id="ship-hp"></b></span></div>
       <progress id="ship-health" class="ship-health" value="520" max="520" aria-label="Intégrité du vaisseau"></progress>
       <div class="ship-shield-row"><label for="ship-shield-meter">BOUCLIER</label><progress id="ship-shield-meter" value="180" max="180"></progress><span id="ship-shield"></span></div>
+      <div id="invasion-alert" class="invasion-alert"></div>
+      <div id="ray-progress" hidden><progress id="ray-charge" value="0" max="10" aria-label="Charge du rayon"></progress></div>
+      <details class="ship-details"><summary>Systèmes et arsenal du vaisseau</summary>
       <div class="ship-systems">
         <label>Canon <span id="ship-weapons-value"></span><progress id="ship-weapons" max="160" value="160" aria-label="État du canon"></progress></label>
         <label>Moteurs <span id="ship-engines-value"></span><progress id="ship-engines" max="130" value="130" aria-label="État des moteurs"></progress></label>
         <label>Réacteur <span id="ship-reactor-value"></span><progress id="ship-reactor" max="230" value="230" aria-label="État du réacteur"></progress></label>
       </div>
-      <div id="invasion-alert" class="invasion-alert"></div>
-      <div id="ray-progress" hidden><progress id="ray-charge" value="0" max="10" aria-label="Charge du rayon"></progress></div>
       <small id="ray-counter"></small>
       <small id="ship-arsenal" style="display:block;margin-top:6px;font-size:8px;color:#9eafc5"></small>
+      </details>
     </section>
     <div class="scoreboard" aria-label="État des nations"></div>
     <div id="cinematic-label" class="cinematic-label" role="status" hidden></div>
@@ -55,11 +67,11 @@
     <div class="view-controls"><button id="rotate" title="Mettre en pause la rotation" aria-label="Mettre en pause la rotation" aria-pressed="true">Ⅱ</button><span></span><button id="zoom-in" title="Zoom avant" aria-label="Zoom avant">+</button><button id="zoom-out" title="Zoom arrière" aria-label="Zoom arrière">−</button><span></span><button id="reset" title="Recentrer le globe" aria-label="Recentrer le globe">⌖</button><button id="fullscreen" title="Plein écran" aria-label="Plein écran">⛶</button></div>
     <div id="tooltip" role="tooltip"></div>
     <div id="loading" role="status"><span class="loader"></span>Création de votre monde…</div>
-    <div class="battle-dock"><div id="diplomacy" class="diplomacy"></div><div class="simulation-controls"><button id="planet-shield-toggle" class="planet-shield-toggle" hidden disabled aria-pressed="false">Activer bouclier Terre</button><button id="pause-battle" disabled>Pause</button><button id="reset-battle">Réinitialiser</button><label>Vitesse <select id="speed-battle" aria-label="Vitesse de simulation"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select></label><label class="follow"><input type="checkbox" id="follow-battle" checked>Cadrage auto</label><label><input type="checkbox" id="cinematic-battle" checked>Caméra Titan uniquement</label></div><div class="journal"><div class="list-heading"><span>JOURNAL DE L’AFFRONTEMENT</span><span>● IA</span></div><ol id="event-list" aria-label="Événements du duel"></ol></div></div>
+    <div class="battle-dock"><section id="research-hud" class="research-hud" hidden aria-label="Recherche de la coalition"><div><strong id="research-name"></strong><span id="research-status"></span></div><progress id="research-progress" value="0" max="90" aria-label="Progression de la recherche"></progress><small id="research-detail"></small></section><div id="diplomacy" class="diplomacy"></div><div class="simulation-controls"><button id="planet-shield-toggle" class="planet-shield-toggle" hidden disabled aria-pressed="false">Activer bouclier Terre</button><button id="pause-battle" disabled>Pause</button><button id="reset-battle">Réinitialiser</button><label>Vitesse <select id="speed-battle" aria-label="Vitesse de simulation"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select></label><label class="follow"><input type="checkbox" id="follow-battle" checked>Cadrage auto</label><label><input type="checkbox" id="cinematic-battle" checked>Caméra Titan uniquement</label></div><details class="journal"><summary>Journal de l’affrontement</summary><ol id="event-list" aria-label="Événements du duel"></ol></details></div>
     <div id="result" class="result" role="status" hidden><span class="eyebrow">BILAN DE L’AFFRONTEMENT</span><h2 id="result-title"></h2><p id="result-detail"></p><div class="stats-scroll"><table id="result-stats"></table></div><p id="decisive"></p><p id="next-round"></p><button id="replay-battle" class="primary-action">Rejouer ↗</button></div>
     <article class="country-card" id="country-card" aria-live="polite"><div class="card-top"><span class="eyebrow">ESCALE SÉLECTIONNÉE</span><span id="card-region">EUROPE</span></div><div class="country-title"><span id="card-flag">🇫🇷</span><div><h2 id="card-name">France</h2><span id="card-native">République française</span></div><span class="card-index" id="card-index">01</span></div><div class="country-facts"><div><small>CAPITALE</small><strong id="card-capital">Paris</strong></div><div><small>COORDONNÉES DE LA CAPITALE</small><strong id="card-coords">48.86° N · 2.35° E</strong></div></div><div class="card-bottom"><span><i></i> Sur le globe</span><button id="focus">Centrer sur ce pays ↗</button></div></article>
     <div class="world-bottom"><span>ϟ CENTRALE · ◎ RADAR · ▲ BASE / ZONES STRATÉGIQUES</span><span>SIMULATION FICTIVE <b>↗</b></span></div>
   </section>
 </main>
-<script type="module" src="app.js?v=1.7.0"></script>
+<script type="module" src="app.js?v=1.10.0"></script>
 </body></html>

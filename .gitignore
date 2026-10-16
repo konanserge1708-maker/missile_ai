@@ -5,3 +5,6 @@ qa-strategy.cjs
 atlas-deploy.tar.gz
 qa-volley.cjs
 qa-orbital.cjs
+qa-research.cjs
+qa-research-visuals.cjs
+qa-research-rewind.cjs

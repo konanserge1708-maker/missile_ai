@@ -40,7 +40,7 @@ test('tournament advances two semifinals then final and rejects invalid winners'
  const p=players(4),t=createTournament(p);assert.equal(t.current.label,'Demi-finale 1');assert.throws(()=>t.record({id:'unknown'}));t.record(p[1]);assert.equal(t.current.label,'Demi-finale 2');t.record(p[2]);assert.deepEqual(t.current.players.map(p=>p.id),['1','2']);t.record(p[2]);assert.equal(t.complete,true);assert.equal(t.champion.id,'2');assert.equal(t.matches.length,3);
 });
 test('duplicate nations and unsupported roster sizes are rejected',()=>{
- const g=createBattle();assert.throws(()=>g.start({players:[{id:'A'},{id:'A'}]}));assert.throws(()=>g.start({players:players(9)}));
+ const g=createBattle();assert.throws(()=>g.start({players:[{id:'A'},{id:'A'}]}));assert.throws(()=>g.start({players:players(16)}));
 });
 
 test('salvo schedules twenty unique targets and launches four simultaneous groups of five',()=>{

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from './vendor/OrbitControls.js';
-import { createArena } from './arena.js?v=1.7.0';
+import { createArena } from './arena.js?v=1.10.0';
 
 // Capital coordinates locate the 50 featured stops; world boundaries come from Natural Earth.
 const rows = [

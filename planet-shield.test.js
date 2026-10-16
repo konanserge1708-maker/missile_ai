@@ -55,11 +55,18 @@ test('enabled planetary shield remains bounded in complete three- and eight-nati
 });
 
 const source=(await readFile(new URL('./dist/planet-shield.js',import.meta.url),'utf8')).replace("from 'three'",`from '${new URL('./dist/vendor/three.module.js',import.meta.url).href}'`);
-const {createPlanetShield}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const {createPlanetShield,footballPanels}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+test('football shell closes with twelve pentagons, twenty hexagons and shared blue edges',()=>{
+ const panels=footballPanels(PLANET_SHIELD.radius);assert.equal(panels.points.length,60);assert.equal(panels.edges.length,90);assert.equal(panels.cells.filter(c=>c.length===5).length,12);assert.equal(panels.cells.filter(c=>c.length===6).length,20);
+ const uses=new Map();for(const cell of panels.cells)for(let i=0;i<cell.length;i++){const a=cell[i],b=cell[(i+1)%cell.length],key=Math.min(a,b)+':'+Math.max(a,b);uses.set(key,(uses.get(key)||0)+1);}assert.ok([...uses.values()].every(n=>n===2));assert.equal(panels.points.length-panels.edges.length+panels.cells.length,2);
+ assert.ok(panels.points.every(p=>Math.abs(p.length()-PLANET_SHIELD.radius)<1e-6));
+ const field=createPlanetShield();field.model.traverse(o=>{if(o.isLineSegments)assert.equal(o.material.color.getHex(),0x448cff);});
+});
 test('geodesic net is a full volumetric envelope outside Earth and visible only in Invasion',()=>{
  const field=createPlanetShield({radius:PLANET_SHIELD.radius,reduced:true}),position=new THREE.Vector3(),matrix=new THREE.Matrix4();let fibres=0;
  field.model.traverse(o=>{
   if(o.geometry)for(const attr of Object.values(o.geometry.attributes))assert.ok(attr.array.every(Number.isFinite));
+  if(o.isLineSegments){const positions=o.geometry.attributes.position;fibres+=positions.count/2;for(let i=0;i<positions.count;i++){position.fromBufferAttribute(positions,i);assert.ok(position.length()>2.04);}}
   if(o.isInstancedMesh){fibres+=o.count;for(let i=0;i<o.count;i++){o.getMatrixAt(i,matrix);position.setFromMatrixPosition(matrix);assert.ok(position.length()>2.04);assert.ok(matrix.elements.every(Number.isFinite));}}
  });assert.ok(fibres>1000);
  field.update({mode:'invasion',time:0,planetShield:{active:true,hp:165,maxHp:165,hitAt:-Infinity}});assert.equal(field.model.visible,true);

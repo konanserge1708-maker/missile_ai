@@ -1,9 +1,10 @@
-import {createBattle,PROFILES,WEAPONS,SHIELD,DEFENSE} from './battle-engine.js?v=1.6.0';
+import {initializeResearch,createResearchSystem,absorbTechnology} from './research.js?v=1.10.0';
+import {createBattle,PROFILES,WEAPONS,SHIELD,DEFENSE} from './battle-engine.js?v=1.10.0';
 import {NAVAL,stepFleet} from './naval.js?v=1.6.0';
 import {orbitBasis} from './orbital.js';
 
 export const INVASION={radius:4.8,shield:180,rayCharge:10,interruptDamage:90,laserCost:40,laserDuration:5,droneLimit:10};
-export const PLANET_SHIELD={radius:2.25,capacityPerNation:55,rechargeDelay:10,rechargePerSecond:5};
+export const PLANET_SHIELD={radius:2.6,capacityPerNation:55,rechargeDelay:10,rechargePerSecond:5};
 export const SHIP_PARTS={weapons:{name:'Canon',hp:160},engines:{name:'Moteurs',hp:130},reactor:{name:'Réacteur',hp:230}};
 export const ALIEN_WEAPONS={bombard:{name:'Bombardement',charge:4,color:0xff5068},ray:{name:'Rayon lourd',charge:10,color:0xff345e},plasma:{name:'Salve plasma',charge:5,color:0xffad52},ion:{name:'Impulsion ionique',charge:6,color:0x78bcff},sweep:{name:'Faisceaux multiples',charge:7,color:0xd58aff}};
 ALIEN_WEAPONS.drone={name:'Canons de chasseur',charge:0,color:0xbc9aff};
@@ -40,22 +41,22 @@ export function dronePoint(drone,time){
 }
 
 export function createInvasion(random=Math.random){
- let config={players:[{id:'A'},{id:'B'},{id:'C'}]},state;
+ let config={players:[{id:'A'},{id:'B'},{id:'C'}]},state;const research=createResearchSystem();
  function reset(options){
   const next=options||config;
-  if(!Array.isArray(next.players)||next.players.length<3||next.players.length>8||new Set(next.players.map(p=>p.id)).size!==next.players.length)throw Error('L’invasion nécessite de 3 à 8 nations différentes.');
+  if(!Array.isArray(next.players)||next.players.length<3||next.players.length>15||new Set(next.players.map(p=>p.id)).size!==next.players.length)throw Error('L’invasion nécessite de 3 à 15 nations différentes.');
   config=structuredClone(next);
   state=createBattle(random).reset({...config,mode:'teams',players:config.players.map(p=>({...p,squad:0}))});
   state.mode='invasion';state.outcome=null;state.shieldDamage=0;state.interruptions=0;state.drones=[];state.droneShots=[];state.nextDroneAt=7;state.droneSequence=0;
   const capacity=PLANET_SHIELD.capacityPerNation*state.fighters.length;
   state.planetShield={active:config.planetShield===true,hp:capacity,maxHp:capacity,absorbed:0,hitAt:-Infinity};
   const origin={lat:state.fighters[0].lat??30,lon:state.fighters[0].lon??0};
-  const coalitionScale=state.fighters.length/3,parts=Object.fromEntries(Object.entries(SHIP_PARTS).map(([key,p])=>[key,{hp:Math.round(p.hp*coalitionScale),maxHp:Math.round(p.hp*coalitionScale)}])),maxHp=Object.values(parts).reduce((n,p)=>n+p.hp,0),shield=Math.round(INVASION.shield*coalitionScale);
+  const coalitionScale=state.fighters.length/3,parts=Object.fromEntries(Object.entries(SHIP_PARTS).map(([key,p])=>[key,{hp:Math.round(p.hp*coalitionScale*(config.research===true?1.45:1)),maxHp:Math.round(p.hp*coalitionScale*(config.research===true?1.45:1))}])),maxHp=Object.values(parts).reduce((n,p)=>n+p.hp,0),shield=Math.round(INVASION.shield*coalitionScale);
   state.ship={hp:maxHp,maxHp,shield,maxShield:shield,interruptThreshold:Math.round(INVASION.interruptDamage*coalitionScale),hitAt:-Infinity,parts,
    phase:'scanning',phaseAt:0,nextAttack:5,attackCount:0,target:null,attack:null,projectiles:[],origin,destination:{...origin},travel:4};
   state.fighters.forEach(f=>{f.shieldDamage=0;f.support=0;f.strategy='Coordination de la coalition';});
   state.satellites.forEach((s,i)=>{s.phase='idle';s.readyAt=8+i*1.2;s.until=0;});
-  return state;
+  initializeResearch(state,config,random);research.reset();research.record(state);return state;
  }
  reset();
  const living=()=>state.fighters.map((f,i)=>f.hp>0?i:-1).filter(i=>i>=0);
@@ -65,6 +66,7 @@ export function createInvasion(random=Math.random){
   if(state.ship.hp>0&&living().length)return false;
   state.outcome=state.ship.hp<=0?'victory':'defeat';state.status='finished';
   state.winners=state.outcome==='victory'?state.fighters.map((_,i)=>i):[];state.winner=state.winners[0]??null;
+  if(state.tech?.phase==='active'){state.tech.phase='spent';state.tech.layers=[];state.tech.projectiles=[];}
   state.ship.phase=state.outcome==='victory'?'destroyed':'victorious';state.ship.attack=null;state.ship.projectiles=[];state.flights=[];state.drones=[];state.droneShots=[];
   state.satellites.forEach(s=>{s.phase='idle';s.until=0;});
   emit(events,'finish',{outcome:state.outcome,winners:[...state.winners],winner:state.winner});return true;
@@ -97,26 +99,32 @@ export function createInvasion(random=Math.random){
  }
  function hitNation(attack,events){
   const f=state.fighters[attack.to];if(f.hp<=0)return;
-  let amount=attack.damage;
-  const covered=state.planetShield.active&&state.planetShield.hp>=amount;
+  let amount=attack.damage*(state.tech?.enabled?Math.min(1,.35+state.time/200):1);
+  const project=state.tech;
+  if(project?.phase==='active'&&project.id==='destroyer'&&project.destroyerHp>0&&attack.kind!=='drone'&&random()<.35){const diverted=Math.min(project.destroyerHp,amount*.7);project.destroyerHp-=diverted;amount-=diverted;emit(events,'destroyerHit',{damage:diverted,hp:project.destroyerHp});}
+  const extra=project?.phase==='active'&&project.id==='triple'?project.layers.reduce((a,b)=>a+b,0):0;
+  const covered=extra>=amount||state.planetShield.active&&state.planetShield.hp>=amount;
   if(!covered&&['bombard','plasma'].includes(attack.kind)&&f.zones.find(z=>z.type==='radar').hp>0&&f.interceptors>0&&f.energy>=DEFENSE.energyCost){
    f.interceptors--;f.energy-=DEFENSE.energyCost;f.interceptorsFired++;if(f.reloadAt===null)f.reloadAt=state.time+DEFENSE.reloadSeconds;
    const success=random()<.65;if(success){amount*=.4;f.blocked++;}
    emit(events,'invasionIntercept',{to:attack.to,point:attack.point,success});
   }
+  const outerLayer=project?.layers?.findLastIndex(h=>h>0)??-1;
+  const techHit=absorbTechnology(state,amount,(type,data)=>emit(events,type,data));amount=techHit.remaining;
+  if(techHit.absorbed>0)emit(events,'technologyShieldHit',{point:{...attack.point},layer:outerLayer});
   const field=state.planetShield,planetAbsorbed=field.active?Math.min(field.hp,amount):0;
   if(planetAbsorbed>0){
    field.hp=Math.max(0,field.hp-planetAbsorbed);field.absorbed+=planetAbsorbed;field.hitAt=state.time;amount-=planetAbsorbed;
    emit(events,'planetShieldHit',{point:{...attack.point},absorbed:planetAbsorbed,kind:attack.kind});
    if(field.hp===0)emit(events,'planetShieldBroken');
   }
-  const planetBlocked=planetAbsorbed>0&&amount<=1e-8;
+  const planetBlocked=(planetAbsorbed>0||techHit.absorbed>0)&&amount<=1e-8;
   const absorbed=Math.min(f.shield,amount);f.shield-=absorbed;if(amount>0)f.shieldHitAt=state.time;
   const damage=Math.min(f.hp,amount-absorbed);f.hp-=damage;f.taken+=damage;
   const energyDrained=attack.kind==='ion'&&!planetBlocked?Math.min(f.energy,30):0;f.energy-=energyDrained;
-  const zone=f.zones.find(z=>z.type===attack.zone);
-  if(zone&&zone.hp>0&&damage>0){zone.hp=Math.max(0,zone.hp-damage);if(zone.hp===0)emit(events,'zoneDestroyed',{from:attack.to,zone:zone.type});}
-  emit(events,'invasionHit',{...attack,damage,absorbed,energyDrained,planetAbsorbed,planetBlocked});
+  const zone=attack.zone==='research'?state.tech?.centers[attack.to]:f.zones.find(z=>z.type===attack.zone);
+  if(zone&&zone.hp>0&&damage>0){zone.hp=Math.max(0,zone.hp-damage);if(zone.hp===0)emit(events,attack.zone==='research'?'researchSabotaged':'zoneDestroyed',{from:attack.to,zone:zone.type});}
+  emit(events,'invasionHit',{...attack,damage,absorbed,energyDrained,planetAbsorbed,planetBlocked,techAbsorbed:techHit.absorbed,techRadius:techHit.absorbed?2.8+outerLayer*.18:null});
   if(f.hp===0){f.eliminatedAt=state.time;emit(events,'eliminated',{from:attack.to});}
  }
  function resources(dt,previous){
@@ -166,7 +174,7 @@ export function createInvasion(random=Math.random){
    f.strategy='Répare les défenses de la coalition';emit(events,'repair',{from,amount});return;
   }
   if(state.orbitalEnabled&&state.satellites[from].phase==='charging'&&ship.shield>0){f.strategy='Réserve 40 énergie pour le laser ionique';return;}
-  let part=known&&a.kind==='ray'?'weapons':f.profile==='aggressive'?'weapons':f.profile==='opportunist'?'reactor':'engines';
+  let part=state.rewindKnowledgeUntil>state.time?'weapons':known&&a.kind==='ray'?'weapons':f.profile==='aggressive'?'weapons':f.profile==='opportunist'?'reactor':'engines';
   if(ship.parts[part].hp===0)part=Object.keys(SHIP_PARTS).find(p=>ship.parts[p].hp>0);
   if(!part)return;
   let kind=f.doctrine==='salvo'&&f.energy>=55&&ship.shield>0?'salvo':f.energy>=62&&f.zones.find(z=>z.type==='silo').hp>0?'heavy':'light';
@@ -190,7 +198,7 @@ export function createInvasion(random=Math.random){
    let kind=attackCycle[ship.attackCount%attackCycle.length];ship.attackCount++;
    if(ship.parts.weapons.hp<=0)kind='bombard';
    if(ship.parts.reactor.hp<=0&&['ion','sweep'].includes(kind))kind='plasma';
-   const zone=f.zones.find(z=>z.type===ship.attackZone)||f.zones[0];
+   const zone=ship.attackZone==='research'?{...state.tech.centers[ship.target],type:'research'}:f.zones.find(z=>z.type===ship.attackZone)||f.zones[0];
    const duration=ALIEN_WEAPONS[kind].charge,radar=radarOnline();
    ship.phase=kind;ship.phaseAt=state.time;
    ship.attack={id:ship.attackCount,kind,to:ship.target,zone:zone.type,point:{...zone.point},start:state.time,fireAt:state.time+duration,
@@ -199,6 +207,7 @@ export function createInvasion(random=Math.random){
    const a=ship.attack;
    a.targets=kind==='sweep'?living().flatMap(to=>{const zones=state.fighters[to].zones.filter(z=>z.hp>0);return (zones.length?zones:state.fighters[to].zones).slice(0,2).map(z=>({to,zone:z.type,point:{...z.point}}));}):
     kind==='plasma'?Array.from({length:4},(_,i)=>{const z=f.zones[i%f.zones.length];return {to:ship.target,zone:z.type,point:{...z.point}};}):[{to:a.to,zone:a.zone,point:{...a.point}}];
+   if(ship.attackZone==='research'&&state.tech?.phase==='researching'){const researchTarget={to:ship.target,zone:'research',point:{...zone.point}};if(kind==='plasma')a.targets=Array.from({length:4},()=>({...researchTarget}));else a.targets[0]=researchTarget;}
   }
   const attack=ship.attack;
   if(attack){
@@ -217,7 +226,7 @@ export function createInvasion(random=Math.random){
    const alive=living();if(!alive.length)return;
    // Alternates concentrated strikes and pursuit of the most damaged nation.
    const to=ship.attackCount%2===0?alive[ship.attackCount%alive.length]:alive.reduce((a,b)=>state.fighters[a].hp<state.fighters[b].hp?a:b);
-   ship.origin=mothershipPoint(ship,state.time);const f=state.fighters[to],zone=f.zones.filter(z=>z.hp>0).sort((a,b)=>a.hp-b.hp)[0]||f.zones[0];ship.destination={...zone.point};ship.attackZone=zone.type;
+   ship.origin=mothershipPoint(ship,state.time);const f=state.fighters[to],center=state.tech?.centers[to],hunt=state.tech?.phase==='researching'&&state.tech.progress>state.tech.required*.25&&center?.hp>0&&ship.attackCount%3===2,zone=hunt?{...center,type:'research'}:f.zones.filter(z=>z.hp>0).sort((a,b)=>a.hp-b.hp)[0]||f.zones[0];ship.destination={...zone.point};ship.attackZone=zone.type;
    ship.target=to;ship.phase='approach';ship.phaseAt=state.time;ship.travel=ship.parts.engines.hp>0?4:7;
   }
  }
@@ -252,8 +261,10 @@ export function createInvasion(random=Math.random){
   }
  }
  function advance(dt,events){
+  const researchHooks={emit:(type,data)=>emit(events,type,data),hitShip:(from,amount,part,kind)=>hitShip(from,amount,part,events,kind),point:mothershipPoint};
+  if(state.tech?.phase==='active'&&state.tech.id==='rewind'){research.step(state,dt,researchHooks);return;}
   const previous=state.time;state.time+=dt;if(finish(events))return;
-  resources(dt,previous);satellites(dt,events);drones(events);
+  resources(dt,previous);const restored=research.step(state,dt,researchHooks);if(restored){state=restored;return;}if(finish(events))return;satellites(dt,events);drones(events);
   for(const shot of [...state.ship.projectiles]){
    if(!shot.launched&&state.time+1e-8>=shot.start){shot.launched=true;shot.origin={...mothershipPoint(state.ship,state.time)};shot.motion=mothershipMotion(state.ship,state.time);}
    if(state.time+1e-8>=shot.impactAt){state.ship.projectiles.splice(state.ship.projectiles.indexOf(shot),1);hitNation(shot,events);}
