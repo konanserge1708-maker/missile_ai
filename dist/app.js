@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from './vendor/OrbitControls.js';
-import { createArena } from './arena.js';
+import { createArena } from './arena.js?v=1.7.0';
 
 // Capital coordinates locate the 50 featured stops; world boundaries come from Natural Earth.
 const rows = [
@@ -44,9 +44,9 @@ function select(c,move=true){selected=c;$('card-name').textContent=c.name;$('car
 }
 $('focus').onclick=()=>select(selected);
 $('rotate').onclick=()=>{focusTarget=null;setRotation(!controls?.autoRotate);};
-function zoom(f){if(!camera)return;focusTarget=null;camera.position.setLength(THREE.MathUtils.clamp(camera.position.length()*f,3.1,9));}
+function zoom(f){if(!camera)return;focusTarget=null;arena?.releaseCamera();const offset=camera.position.clone().sub(controls.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*f,controls.minDistance,controls.maxDistance));camera.position.copy(controls.target).add(offset);}
 $('zoom-in').onclick=()=>zoom(.82);$('zoom-out').onclick=()=>zoom(1.22);
-$('reset').onclick=()=>{if(!ready)return;focusTarget=spherical(18,15,6.7);setRotation(!reduced);};
+$('reset').onclick=()=>{if(!ready)return;if(arena?.isInvasion()){arena.frame();return;}focusTarget=spherical(18,15,6.7);setRotation(!reduced);};
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{$('fullscreen').title='Plein écran indisponible dans cet aperçu';}};
 function maskIndex(lat,lon){const x=Math.min(maskWidth-1,Math.max(0,Math.floor((lon+180)/360*maskWidth))),y=Math.min(maskHeight-1,Math.max(0,Math.floor((90-lat)/180*maskHeight)));return maskPixels[(y*maskWidth+x)*4]-1;}
 function makeMask(){const canvas=document.createElement('canvas');canvas.width=maskWidth;canvas.height=maskHeight;const ctx=canvas.getContext('2d',{willReadFrequently:true});features.forEach((f,index)=>{ctx.fillStyle=`rgb(${index+1},0,0)`;const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates;for(const poly of polys){ctx.beginPath();for(const ring of poly){ring.forEach(([lon,lat],i)=>{const x=(lon+180)/360*maskWidth,y=(90-lat)/180*maskHeight;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();}ctx.fill('evenodd');}});maskPixels=ctx.getImageData(0,0,maskWidth,maskHeight).data;}

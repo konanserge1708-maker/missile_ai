@@ -6,7 +6,7 @@
   <title>Atlas Arena — Duel des nations</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23080d12' stroke='%2377ddd4' stroke-width='3'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="arena.css">
+  <link rel="stylesheet" href="arena.css?v=1.7.0">
   <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 </head>
 <body>
@@ -14,10 +14,14 @@
 <main>
   <aside class="sidebar">
     <div class="eyebrow">STRATÉGIES AUTONOMES · CONFLITS FICTIFS</div><h1>Le monde.<br><em>Votre arène.</em></h1><p class="intro">Composez les camps et leurs stratégies. <br>Les IA prennent les commandes.</p>
-    <div class="mode-controls"><label>MODE<select id="game-mode"><option value="duel">Duel</option><option value="ffa">Chacun pour soi</option><option value="teams">Équipes</option><option value="tournament">Tournoi · 4 nations</option></select></label><label>NATIONS<select id="nation-count"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></label></div>
+    <div class="mode-controls"><label>MODE<select id="game-mode"><option value="duel">Duel</option><option value="ffa">Chacun pour soi</option><option value="teams">Équipes</option><option value="tournament">Tournoi · 4 nations</option><option value="invasion">Invasion · 3 à 8 nations</option></select></label><label>NATIONS<select id="nation-count"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></label></div>
+    <details id="invasion-guide" class="invasion-guide" hidden><summary>Mission : une Terre, jusqu’à huit alliés</summary><p>Détruisez le vaisseau mère. Les radars partagent les alertes, les satellites percent son bouclier et les missiles visent ses systèmes.</p><p>Le combat commence par des arcs violets qui frappent simultanément deux installations par nation. Dix chasseurs peuvent quitter le vaisseau, changer de région et mitrailler les nations en continu. Les radars et les intercepteurs permettent de les abattre.</p><p>Arsenal : faisceaux courbés, rayon lourd, plasma et impulsion ionique (−30 énergie, même sous bouclier), bombardement et canons des chasseurs.</p><p>Rayon lourd : 10 s de charge. Infligez 90 dégâts réels au canon pendant la charge (240 à huit nations) pour l’interrompre, détruisez-le ou renforcez la cible. Détruire le canon réduit l’arsenal ; neutraliser le réacteur désactive les armes ioniques et les multifaisceaux. Les moteurs ralentissent les manœuvres et les attaques.</p></details>
     <div id="nation-setup" class="nation-setup"></div><div id="bracket" class="bracket" hidden></div>
+    <label id="planet-shield-option" class="salvo-option planet-shield-option" hidden><input type="checkbox" id="planet-shield-enabled" checked>Activer le bouclier planétaire au lancement <span>Filet géodésique 3D · réserve collective · mode Invasion</span></label>
+    <label class="salvo-option"><input type="checkbox" id="naval-enabled" checked>Déployer les flottes navales <span>Un navire par nation · patrouilles en mer · tirs périodiques</span></label>
     <label class="salvo-option"><input type="checkbox" id="salvo-priority" checked>Favoriser les salves de 20 <span>4 groupes de 5 · cibles réparties</span></label>
     <label class="salvo-option"><input type="checkbox" id="orbital-enabled" checked>Satellites et lasers orbitaux <span>Un satellite par nation · laser rouge pendant 5 s</span></label>
+    <label class="salvo-option"><input type="checkbox" id="sound-battle" checked>Ambiance sonore spatialisée <span>Décollages, interceptions et impacts · activée au lancement</span></label>
     <button id="start-battle" class="primary-action" disabled>Chargement de l’arène…</button>
     <div class="setup-note">100 PV · énergie renouvelable · profils IA adaptatifs</div>
     <details class="arsenal"><summary>Arsenal et règles du jeu</summary><p><b>Éclair</b> · 12 dégâts · 22 énergie · rapide<br><b>Essaim</b> · 20 × 2 dégâts · 55 énergie · 4 vagues de 5 espacées de 0,85 s<br><b>Titan</b> · 38 dégâts · 62 énergie · lent et puissant</p><p><b>Intercepteurs</b> : 6 en stock, une munition rechargée toutes les 8 s, délai de 0,45 s entre tirs, 8 énergie par tir. Une interception peut échouer. Le stock et le rechargement sont visibles sur les cartes.</p><p>Bouclier territorial : 40 points dès le départ ; recharge de 2,5 points/s après 6 s sans impact, au prix de 1 énergie par point. Renforcement IA : 28 énergie pour jusqu’à 32 points.<br>Réparation : 35 énergie, restaure 14 PV.<br>Dernière offensive sous 30 PV : bonus d’énergie et de dégâts, mais Titan coûte aussi 5 PV.</p><p><b>Zones stratégiques</b> : ϟ Centrale (32 PV), ◎ Radar (28 PV), ▲ Base de missiles (36 PV). Elles apparaissent sur la carte dès le lancement. Centrale détruite : énergie ÷2. Radar détruit : interceptions bloquées. Base détruite : cadence ralentie, Titan indisponible. Les IA peuvent réparer une zone de 12 points.</p><p><b>Satellites</b> : 40 énergie pour un laser de 5 s, 4 dégâts/s absorbés en priorité par le bouclier. Brouilleur : 22 énergie, retarde les nouveaux verrouillages pendant 7 s, recharge 22 s. Leurre : 18 énergie, actif 9 s, recharge 24 s ; un laser leurré ne cause aucun dégât.</p><p>Les IA adaptent leur arsenal aux interceptions et à l’énergie adverse. En chacun pour soi : trêves de 12 s, avec ruptures possibles. En équipes : A/C/E contre B/D/F. Après 75 s : mort subite pour éviter les parties sans fin.</p></details>
@@ -29,6 +33,21 @@
   </aside>
   <section class="world" aria-label="Globe terrestre interactif">
     <div class="world-top"><span><i></i> <span id="battle-status">PRÉPARATION DE L’ARÈNE</span></span><b id="battle-time">00:00</b><span id="coordinates">48.86° N / 2.35° E</span></div>
+    <section id="invasion-hud" class="invasion-hud" aria-label="Vaisseau mère extraterrestre" hidden>
+      <div class="ship-heading"><span class="eyebrow">CONTACT HOSTILE / 001</span><span id="ship-phase"></span></div>
+      <div class="ship-title"><h2>Vaisseau mère</h2><span>INTÉGRITÉ <b id="ship-hp"></b></span></div>
+      <progress id="ship-health" class="ship-health" value="520" max="520" aria-label="Intégrité du vaisseau"></progress>
+      <div class="ship-shield-row"><label for="ship-shield-meter">BOUCLIER</label><progress id="ship-shield-meter" value="180" max="180"></progress><span id="ship-shield"></span></div>
+      <div class="ship-systems">
+        <label>Canon <span id="ship-weapons-value"></span><progress id="ship-weapons" max="160" value="160" aria-label="État du canon"></progress></label>
+        <label>Moteurs <span id="ship-engines-value"></span><progress id="ship-engines" max="130" value="130" aria-label="État des moteurs"></progress></label>
+        <label>Réacteur <span id="ship-reactor-value"></span><progress id="ship-reactor" max="230" value="230" aria-label="État du réacteur"></progress></label>
+      </div>
+      <div id="invasion-alert" class="invasion-alert"></div>
+      <div id="ray-progress" hidden><progress id="ray-charge" value="0" max="10" aria-label="Charge du rayon"></progress></div>
+      <small id="ray-counter"></small>
+      <small id="ship-arsenal" style="display:block;margin-top:6px;font-size:8px;color:#9eafc5"></small>
+    </section>
     <div class="scoreboard" aria-label="État des nations"></div>
     <div id="cinematic-label" class="cinematic-label" role="status" hidden></div>
     <div id="globe" tabindex="0" role="group" aria-label="Globe 3D. Glissez pour tourner, utilisez la molette pour zoomer. Sélectionnez les pays dans la liste."></div>
@@ -36,11 +55,11 @@
     <div class="view-controls"><button id="rotate" title="Mettre en pause la rotation" aria-label="Mettre en pause la rotation" aria-pressed="true">Ⅱ</button><span></span><button id="zoom-in" title="Zoom avant" aria-label="Zoom avant">+</button><button id="zoom-out" title="Zoom arrière" aria-label="Zoom arrière">−</button><span></span><button id="reset" title="Recentrer le globe" aria-label="Recentrer le globe">⌖</button><button id="fullscreen" title="Plein écran" aria-label="Plein écran">⛶</button></div>
     <div id="tooltip" role="tooltip"></div>
     <div id="loading" role="status"><span class="loader"></span>Création de votre monde…</div>
-    <div class="battle-dock"><div id="diplomacy" class="diplomacy"></div><div class="simulation-controls"><button id="pause-battle" disabled>Pause</button><button id="reset-battle">Réinitialiser</button><label>Vitesse <select id="speed-battle" aria-label="Vitesse de simulation"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select></label><label class="follow"><input type="checkbox" id="follow-battle" checked>Cadrage auto</label><label><input type="checkbox" id="cinematic-battle" checked>Caméra Titan uniquement</label></div><div class="journal"><div class="list-heading"><span>JOURNAL DE L’AFFRONTEMENT</span><span>● IA</span></div><ol id="event-list" aria-label="Événements du duel"></ol></div></div>
+    <div class="battle-dock"><div id="diplomacy" class="diplomacy"></div><div class="simulation-controls"><button id="planet-shield-toggle" class="planet-shield-toggle" hidden disabled aria-pressed="false">Activer bouclier Terre</button><button id="pause-battle" disabled>Pause</button><button id="reset-battle">Réinitialiser</button><label>Vitesse <select id="speed-battle" aria-label="Vitesse de simulation"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select></label><label class="follow"><input type="checkbox" id="follow-battle" checked>Cadrage auto</label><label><input type="checkbox" id="cinematic-battle" checked>Caméra Titan uniquement</label></div><div class="journal"><div class="list-heading"><span>JOURNAL DE L’AFFRONTEMENT</span><span>● IA</span></div><ol id="event-list" aria-label="Événements du duel"></ol></div></div>
     <div id="result" class="result" role="status" hidden><span class="eyebrow">BILAN DE L’AFFRONTEMENT</span><h2 id="result-title"></h2><p id="result-detail"></p><div class="stats-scroll"><table id="result-stats"></table></div><p id="decisive"></p><p id="next-round"></p><button id="replay-battle" class="primary-action">Rejouer ↗</button></div>
     <article class="country-card" id="country-card" aria-live="polite"><div class="card-top"><span class="eyebrow">ESCALE SÉLECTIONNÉE</span><span id="card-region">EUROPE</span></div><div class="country-title"><span id="card-flag">🇫🇷</span><div><h2 id="card-name">France</h2><span id="card-native">République française</span></div><span class="card-index" id="card-index">01</span></div><div class="country-facts"><div><small>CAPITALE</small><strong id="card-capital">Paris</strong></div><div><small>COORDONNÉES DE LA CAPITALE</small><strong id="card-coords">48.86° N · 2.35° E</strong></div></div><div class="card-bottom"><span><i></i> Sur le globe</span><button id="focus">Centrer sur ce pays ↗</button></div></article>
     <div class="world-bottom"><span>ϟ CENTRALE · ◎ RADAR · ▲ BASE / ZONES STRATÉGIQUES</span><span>SIMULATION FICTIVE <b>↗</b></span></div>
   </section>
 </main>
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=1.7.0"></script>
 </body></html>

@@ -1,4 +1,5 @@
 import {ORBITAL,orbitBasis} from './orbital.js';
+import {NAVAL,createFleet,stepFleet} from './naval.js?v=1.6.0';
 export const PROFILES = {
  aggressive:{name:'Agressive',pace:2.4,defense:.2},
  defensive:{name:'Défensive',pace:3.2,defense:.7},
@@ -16,10 +17,10 @@ export const isCinematicMissile = f => f.kind==='heavy' && f.damage>=30;
 export function createBattle(random=Math.random) {
  let config={players:[{id:'A'},{id:'B'}],mode:'duel'},state;
  function reset(options){
-  if(options){if(!Array.isArray(options.players)||options.players.length<2||options.players.length>6)throw Error('Choisir de 2 à 6 nations.');if(new Set(options.players.map(p=>p.id)).size!==options.players.length)throw Error('Les nations doivent être différentes.');config=structuredClone(options);}
+  if(options){if(!Array.isArray(options.players)||options.players.length<2||options.players.length>8)throw Error('Choisir de 2 à 8 nations.');if(new Set(options.players.map(p=>p.id)).size!==options.players.length)throw Error('Les nations doivent être différentes.');config=structuredClone(options);}
   const fighters=config.players.map((p,i)=>({...p,profile:PROFILES[p.profile]?p.profile:['aggressive','defensive','opportunist'][i%3],squad:config.mode==='teams'?(p.squad??i%2):i,hp:100,energy:65,shield:SHIELD.capacity,shieldHitAt:-Infinity,laserDamage:0,laserSeconds:0,laserStrikes:0,jamUntil:0,jamReady:0,decoyUntil:0,decoyReady:0,zones:Object.entries(ZONES).map(([type,zone],j)=>({type,hp:zone.hp,maxHp:zone.hp,point:p.targets?.[Math.floor(j*(p.targets.length/3))]||{lat:p.lat??i*20,lon:p.lon??i*60}})),interceptors:DEFENSE.capacity,reloadAt:null,defenseReady:0,interceptorsFired:0,shots:0,hits:0,blocked:0,damage:0,taken:0,repaired:0,streak:0,bestStreak:0,lastStand:false,strategy:'Analyse du terrain',next:1+i*.45,eliminatedAt:null,used:{light:0,heavy:0,salvo:0}}));
   const satellites=fighters.map((f,i)=>{const origin={lat:f.lat??f.targets?.[0]?.lat??i*20,lon:f.lon??f.targets?.[0]?.lon??i*60};return {owner:i,phase:'idle',origin,destination:{...origin},target:null,elapsed:0,travel:0,returnTime:0,damage:0};});
-  state={satellites,orbitalEnabled:config.satellites!==false,status:'idle',time:0,mode:config.mode||'duel',fighters,flights:[],alliances:[],winner:null,winners:[],sequence:0,decisive:null,nextDiplomacy:8,overtime:false};return state;
+  state={satellites,orbitalEnabled:config.satellites!==false,navalEnabled:config.naval!==false,fleet:createFleet(fighters),status:'idle',time:0,mode:config.mode||'duel',fighters,flights:[],alliances:[],winner:null,winners:[],sequence:0,decisive:null,nextDiplomacy:8,overtime:false};return state;
  }
  reset();
  const alive=()=>state.fighters.map((f,i)=>f.hp>0?i:-1).filter(i=>i>=0);
@@ -129,6 +130,12 @@ export function createBattle(random=Math.random) {
    }
    stepSatellites(dt,events);
    if(victory(events))return events;
+   stepFleet(state,(ship,sourcePoint)=>{
+    const from=ship.owner,targets=alive().filter(to=>enemies(from,to)&&!pact(from,to));if(!targets.length)return false;
+    const to=targets[(ship.owner+ship.shots)%targets.length],target=state.fighters[to],zone=target.zones.find(z=>z.hp>0)||target.zones[0],id=++state.sequence;
+    const flight={id,batch:id,index:0,group:0,from,to,kind:'light',naval:true,start:state.time,duration:NAVAL.travel,damage:NAVAL.damage*(state.overtime?1.5:1),sourcePoint,targetPoint:{...zone.point},targetZone:zone.type,bend:.03,loft:.1,launched:true,defenseAt:.72,defenseChecked:false,intercepted:false};
+    state.flights.push(flight);state.fighters[from].shots++;events.push({type:'launch',flight});return true;
+   });
    for(let from=0;from<state.fighters.length;from++){const f=state.fighters[from];if(f.hp>0&&state.time>=f.next){decision(from,events);f.next=state.time+(PROFILES[f.profile].pace+random()*.9)*(f.zones.find(z=>z.type==='silo').hp>0?1:1.7);}}
    return events;
   }
